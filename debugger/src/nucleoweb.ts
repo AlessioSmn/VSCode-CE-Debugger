@@ -14,7 +14,6 @@ export class NucleoInfo {
 	public semaphore_list: any | undefined;
 	public esecuzione: any | undefined;
 	public pronti: any | undefined;
-	// delare your new GDB response variable
 
     private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
@@ -27,31 +26,6 @@ export class NucleoInfo {
 		// Listen for when the panel is disposed
 		// This happens when the user closes the panel or when the panel is closed programmatically
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-
-		// Update the content based on view changes (moved around the window)
-		// this._panel.onDidChangeViewState(
-		// 	e => {
-		// 		if (this._panel.visible) {
-		// 			this._update();
-		// 		}
-		// 	},
-		// 	null,
-		// 	this._disposables
-		// );
-
-        // This can be useful if you need to handle input from the webview
-		// Handle messages from the webview
-		// this._panel.webview.onDidReceiveMessage(
-		// 	message => {
-		// 		switch (message.command) {
-		// 			case 'alert':
-		// 				vscode.window.showErrorMessage(message.text);
-		// 				return;
-		// 		}
-		// 	},
-		// 	null,
-		// 	this._disposables
-		// );
 
 
         const session = vscode.debug.activeDebugSession;
@@ -78,8 +52,6 @@ export class NucleoInfo {
 
     // Update the webview
     private _update() {
-		// const infoPanel = this._panel.webview;
-        // infoPanel.html = this._getHtmlForWebview();
 	}
 
 
@@ -178,7 +150,7 @@ export class NucleoInfo {
 					{{this}}
     				{{#unless this}}[DUMMY]{{/unless}}
 					{{#unless @last}}, {{/unless}}
-			</span>
+				</span>
 			{{/each}}
 			</p></div>
 		</div>
@@ -205,11 +177,21 @@ export class NucleoInfo {
 			<div class="toggable">
 				{{#each sem_list}}
 				<div class="">
-					<h3 class="p-title toggle"><span class="key">Indice</span><span class="info">[{{index}}]</span></h3>
+					<h3 class="p-title toggle"><span class="key">[{{index}}]</span></h3>
 					<div class="toggable">
 						<div class="">
 							<p>Counter: <span>{{sem_info.counter}}</span></p>
-							<p>Processi in coda: <span>{{sem_info.pointer}}</span></p>
+  							{{#if sem_info.process_list.length}}
+								<p><span>Processi in coda (IDs): </span>
+								{{#each sem_info.process_list}}
+									<span>
+										{{this}}
+										{{#unless this}}[DUMMY]{{/unless}}
+										{{#unless @last}}, {{/unless}}
+									</span>
+								{{/each}}
+								</p>
+							{{/if}}
 						</div>
 					</div>
 				</div>
@@ -221,7 +203,7 @@ export class NucleoInfo {
 		let template = Handlebars.compile(source);
 		return template({sem_list: sem_list,});
 	}
-	// Handles the HTML formatting for the process_list command
+	
 	private formatProcessList(){
 		let processListJson = JSON.parse(this.process_list);
 		let proc_count = processListJson.process.length;
