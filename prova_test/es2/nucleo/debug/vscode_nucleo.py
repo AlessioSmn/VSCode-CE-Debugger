@@ -21,7 +21,7 @@ des_proc_std_fields = [ None, 'id', 'cr3', 'contesto', 'livello', 'precedenza', 
 toshow = [ f for f in des_proc_type.fields() if f.name not in des_proc_std_fields ]
 
 # cache the vdf
-vdf = gdb.parse_and_eval("vdf");
+vdf = gdb.parse_and_eval("vdf")
 
 # cache some constants
 max_liv  = int(gdb.parse_and_eval('$MAX_LIV'))
@@ -314,7 +314,11 @@ class Semaphore(gdb.Command):
             sem['index'] = i
             sem['sem_info'] = {}
             sem['sem_info']['counter'] = int(gdb.parse_and_eval("array_dess[{}].counter".format(i)))
-            sem['sem_info']['pointer'] = int(gdb.parse_and_eval("array_dess[{}].pointer".format(i)))
+            pointer = gdb.parse_and_eval("array_dess[{}].pointer".format(i))
+            sem['sem_info']['pointer'] = int(pointer)
+
+            list_ = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
+            sem['sem_info']['process_list'] = list_
             out['sem_list'].append(sem)
         
         gdb.write(json.dumps(out) + "\n")
@@ -338,6 +342,25 @@ def show_list(list_name, field, next_elem):
         proc = proc[next_elem]
 
     return proc_info_list
+
+
+def show_list_custom_cast(list_name, field, next_elem, cast_function):
+    proc_info_list = []
+    proc = gdb.parse_and_eval(list_name)
+
+    while proc != gdb.Value(0):
+
+        # access the process struct
+        proc = proc.dereference()
+        
+        # add the process field data to the list
+        proc_info_list.append(cast_function(proc[field]))
+        
+        # fetch the next process
+        proc = proc[next_elem]
+
+    return proc_info_list
+
 
 
 class Pronti(gdb.Command):
