@@ -38,6 +38,10 @@ m_ini = [ int(gdb.parse_and_eval('$I_' + x.upper())) for x in m_parts ]
 m_names = []
 
 
+sem_utn = gdb.parse_and_eval("sem_allocati_utente")
+sem_sys = gdb.parse_and_eval("sem_allocati_sistema")
+
+
 # cache some types
 ulong_type = gdb.lookup_type('unsigned long')
 void_ptr_type = gdb.Type.pointer(gdb.lookup_type('void'))
@@ -161,7 +165,7 @@ def get_process(pid):
     return p
 
 def dump_corpo(proc):
-    c = proc['corpo'];
+    c = proc['corpo']
     if not c:
         return ''
     return "{}:{}({})".format(*resolve_function(toi(c))[::-1], toi(proc['parametro']))
@@ -299,6 +303,23 @@ def sem_list(cond='all'):
 
 
 class Semaphore(gdb.Command):
+    """
+    Returns a JSON string containing infomation on semaphores,
+    structured as:
+    {
+        "command": "semaphore"
+        "sem_list": [
+            {
+                "index": <semaphore index>
+                "livello": <utente | sistema>
+                "sem_info": {
+                    "counter": {semaphore counter}
+                    "process_list": [ <pid1>, <pid2>, ..., <pidN> ]
+                }
+            }
+        ]
+    }
+    """
 
     def __init__(self):
         super(Semaphore, self).__init__("semaphore", gdb.COMMAND_DATA)
@@ -312,36 +333,15 @@ class Semaphore(gdb.Command):
         for i, s in sem_list(arg):
             sem = {}
             sem['index'] = i
+            sem['livello'] = 'utente' if i < sem_utn else 'sistema'
             sem['sem_info'] = {}
             sem['sem_info']['counter'] = int(gdb.parse_and_eval("array_dess[{}].counter".format(i)))
-            pointer = gdb.parse_and_eval("array_dess[{}].pointer".format(i))
-            sem['sem_info']['pointer'] = int(pointer)
-
-            list_ = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
-            sem['sem_info']['process_list'] = list_
+            sem['sem_info']['process_list'] = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
             out['sem_list'].append(sem)
         
         gdb.write(json.dumps(out) + "\n")
 
 Semaphore()
-
-
-def show_list(list_name, field, next_elem):
-    proc_info_list = []
-    proc = gdb.parse_and_eval(list_name)
-
-    while proc != gdb.Value(0):
-
-        # access the process struct
-        proc = proc.dereference()
-        
-        # add the process field data to the list
-        proc_info_list.append(str(proc[field]))
-        
-        # fetch the next process
-        proc = proc[next_elem]
-
-    return proc_info_list
 
 
 def show_list_custom_cast(list_name, field, next_elem, cast_function):
@@ -361,8 +361,6 @@ def show_list_custom_cast(list_name, field, next_elem, cast_function):
 
     return proc_info_list
 
-
-
 class Pronti(gdb.Command):
     """
     Returns a JSON string containing infomation on 'pronti' list,
@@ -370,10 +368,10 @@ class Pronti(gdb.Command):
     {
         "command": "pronti"
         "process_list": [
-            {first process' id},
-            {second process' id},
-            ...
-            {last process' id}
+            <first process' id>,
+            <second process' id>,
+            ...,
+            <last process' id>
         ]
     }
     """
@@ -384,21 +382,7 @@ class Pronti(gdb.Command):
     def invoke(self, arg, from_tty):
         out = {}
         out['command'] = "pronti"
-        out['process_list'] = []
-        
-        proc = gdb.parse_and_eval("pronti")
-
-        while proc != gdb.Value(0):
-
-            # access the process struct
-            proc = proc.dereference()
-            
-            # add the process pid to the list
-            out['process_list'].append(int(proc['id']))
-            
-            # fetch the next process
-            proc = proc['puntatore']
-
+        out['process_list'] = show_list_custom_cast("pronti", 'id', 'puntatore', int)
         gdb.write(json.dumps(out) + "\n")
 
 Pronti()
