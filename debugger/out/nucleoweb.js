@@ -35,6 +35,7 @@ class NucleoInfo {
     semaphore_list;
     esecuzione;
     pronti;
+    sospesi;
     _panel;
     _disposables = [];
     constructor(panel, extensionUri) {
@@ -51,6 +52,7 @@ class NucleoInfo {
             this.semaphore_list = await this.customCommand(session, "semaphore");
             this.esecuzione = await this.customCommand(session, "esecuzione");
             this.pronti = await this.customCommand(session, "pronti");
+            this.sospesi = await this.customCommand(session, "sospesi");
             const infoPanel = this._panel.webview;
             infoPanel.html = this._getHtmlForWebview();
         };
@@ -156,6 +158,28 @@ class NucleoInfo {
 		`;
         let template = Handlebars.compile(source);
         return template({ pronti_list: pronti_list });
+    }
+    formatCodaSospesi() {
+        let sospesiJson = JSON.parse(this.sospesi);
+        let sospesi_count = sospesiJson.request_list.length;
+        let sospesi_list = sospesiJson.request_list;
+        if (sospesi_count == 0)
+            return `<h3>Processi sospesi <span class="info title">empty</span></h3>`;
+        let source = `
+		<div class="">
+			<h3>Processi sospesi <span class="info title">${sospesi_count} process${sospesi_count == 1 ? 'o' : 'i'}</span></h3>
+			<div><ul>
+				{{#each sospesi_list}}
+				<li>
+					Process <span class="info">{{process}}</span> - 
+					attesa: [<span class="info">+{{attesa_relativa}}</span> | tot: <span class="info">{{attesa_totale}}</span>]
+				{{/each}}
+				</li>
+			</ul></div>
+		</div>
+		`;
+        let template = Handlebars.compile(source);
+        return template({ sospesi_list: sospesi_list });
     }
     formatSemaphoreList() {
         let semaphoreListJson = JSON.parse(this.semaphore_list);
@@ -355,9 +379,11 @@ class NucleoInfo {
 					<hr>
 					{{{readyProcessList}}}
 					<hr>
-					{{{processList}}}
+					{{{suspendedList}}}
 					<hr>
 					{{{semaphoreList}}}
+					<hr>
+					{{{processList}}}
 					<script src="${scriptUri}"></script>
 				</body>
 			</html>
@@ -366,8 +392,9 @@ class NucleoInfo {
         return template({
             executionProcess: this.formatEsecuzione(),
             readyProcessList: this.formatCodaPronti(),
+            suspendedList: this.formatCodaSospesi(),
+            semaphoreList: this.formatSemaphoreList(),
             processList: this.formatProcessList(),
-            semaphoreList: this.formatSemaphoreList()
         });
     }
 }

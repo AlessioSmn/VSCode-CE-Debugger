@@ -414,3 +414,58 @@ class Esecuzione(gdb.Command):
         gdb.write(json.dumps(out) + "\n")
 
 Esecuzione()
+
+
+class Sospesi(gdb.Command):
+    """
+    Returns a JSON string containing infomation on 'sospesi' list,
+    structured as:
+    {
+        "command": "sospesi"
+        "request_list": [
+            {
+                "attesa_relativa": <relative wait time (to preceding process)>,
+                "attesa_totale": <total wait time>,
+                "process": <process' id>
+            },
+            ...
+        ]
+    }
+    """
+
+    def __init__(self):
+        super(Sospesi, self).__init__("sospesi", gdb.COMMAND_DATA)
+
+    def invoke(self, arg, from_tty):
+        out = {}
+        out['command'] = "sospesi"
+
+        request_list = []
+        request = gdb.parse_and_eval("sospesi")
+        attesa_tot = 0
+
+        while request != gdb.Value(0):
+
+            # access the request struct
+            request = request.dereference()
+
+            # retrieve request data
+            request_data = {}
+            attesa = int(request['d_attesa'])
+            request_data["attesa_relativa"] = attesa
+            attesa_tot = attesa_tot + attesa
+            request_data["attesa_totale"] = attesa_tot
+
+            request_data["process"] = int(request['pp'].dereference()['id'])
+            
+            # add the request data to the list
+            request_list.append(request_data)
+            
+            # fetch the next request
+            request = request['p_rich']
+
+        out['request_list'] = request_list
+
+        gdb.write(json.dumps(out) + "\n")
+
+Sospesi()

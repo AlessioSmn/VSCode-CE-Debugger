@@ -14,6 +14,7 @@ export class NucleoInfo {
 	public semaphore_list: any | undefined;
 	public esecuzione: any | undefined;
 	public pronti: any | undefined;
+	public sospesi: any | undefined;
 
     private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
@@ -34,6 +35,7 @@ export class NucleoInfo {
 			this.semaphore_list = await this.customCommand(session, "semaphore");
 			this.esecuzione = await this.customCommand(session, "esecuzione");
 			this.pronti = await this.customCommand(session, "pronti");
+			this.sospesi = await this.customCommand(session, "sospesi");
 			
 			const infoPanel = this._panel.webview;
 
@@ -83,7 +85,7 @@ export class NucleoInfo {
 			return result;
 		}     
     }
-	
+
 	private formatEsecuzione(){
 		let esecuzioneJson = JSON.parse(this.esecuzione);
 		if(esecuzioneJson.pointer == 0)
@@ -160,6 +162,33 @@ export class NucleoInfo {
 
 		let template = Handlebars.compile(source);
 		return template({pronti_list: pronti_list});
+
+	}
+
+	private formatCodaSospesi(){
+		let sospesiJson = JSON.parse(this.sospesi);
+		let sospesi_count = sospesiJson.request_list.length;
+		let sospesi_list = sospesiJson.request_list;
+
+		if(sospesi_count == 0)
+			return `<h3>Processi sospesi <span class="info title">empty</span></h3>`;
+		
+		let source = `
+		<div class="">
+			<h3>Processi sospesi <span class="info title">${sospesi_count} process${sospesi_count == 1 ? 'o' : 'i'}</span></h3>
+			<div><ul>
+				{{#each sospesi_list}}
+				<li>
+					Process <span class="info">{{process}}</span> - 
+					attesa: [<span class="info">+{{attesa_relativa}}</span> | tot: <span class="info">{{attesa_totale}}</span>]
+				{{/each}}
+				</li>
+			</ul></div>
+		</div>
+		`;
+
+		let template = Handlebars.compile(source);
+		return template({sospesi_list: sospesi_list});
 
 	}
 
@@ -368,9 +397,11 @@ export class NucleoInfo {
 					<hr>
 					{{{readyProcessList}}}
 					<hr>
-					{{{processList}}}
+					{{{suspendedList}}}
 					<hr>
 					{{{semaphoreList}}}
+					<hr>
+					{{{processList}}}
 					<script src="${scriptUri}"></script>
 				</body>
 			</html>
@@ -381,8 +412,9 @@ export class NucleoInfo {
 		return template({
 			executionProcess: this.formatEsecuzione(),
 			readyProcessList: this.formatCodaPronti(),
+			suspendedList: this.formatCodaSospesi(),
+			semaphoreList: this.formatSemaphoreList(),
 			processList: this.formatProcessList(),
-			semaphoreList: this.formatSemaphoreList()
 		});
 	}
 }
