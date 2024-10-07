@@ -78,3 +78,21 @@ img {
 	max-width: 100%;
 	height: auto;
 }
+
+
+div.odd{
+	background-color: black;
+}
+div.even{
+	background-color: darkslategray;
+}
+main>div{
+	padding-top: 10px;
+	padding-bottom: 20px;
+}
+main>div:nth-child(odd){
+	background-color: darkslategray;
+}
+main>div:nth-child(even){
+	background-color: rgb(29, 63, 63);
+}
