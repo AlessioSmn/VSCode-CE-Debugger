@@ -32,7 +32,6 @@ class VMInfo {
     static viewType = 'nucleoInfo';
     _extensionUri;
     vm_tree;
-    // delare your new GDB response variable
     _panel;
     _disposables = [];
     constructor(panel, extensionUri) {
@@ -43,33 +42,9 @@ class VMInfo {
         // Listen for when the panel is disposed
         // This happens when the user closes the panel or when the panel is closed programmatically
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        // Update the content based on view changes (moved around the window)
-        // this._panel.onDidChangeViewState(
-        // 	e => {
-        // 		if (this._panel.visible) {
-        // 			this._update();
-        // 		}
-        // 	},
-        // 	null,
-        // 	this._disposables
-        // );
-        // This can be useful if you need to handle input from the webview
-        // Handle messages from the webview
-        // this._panel.webview.onDidReceiveMessage(
-        // 	message => {
-        // 		switch (message.command) {
-        // 			case 'alert':
-        // 				vscode.window.showErrorMessage(message.text);
-        // 				return;
-        // 		}
-        // 	},
-        // 	null,
-        // 	this._disposables
-        // );
         const session = vscode.debug.activeDebugSession;
         const updateInfo = async () => {
-            // Insert your command
-            // this.VAR = this.customCommand(session, "COMMAND");
+            this.vm_tree = this.customCommand(session, "vm");
             const infoPanel = this._panel.webview;
             infoPanel.html = this._getHtmlForWebview();
         };
@@ -108,6 +83,8 @@ class VMInfo {
         }
     }
     formatVmTree() {
+        let foo = String(this.vm_tree);
+        console.debug(foo);
         return `<h3>MEMORIA VIRTUALE<span class="info">: -todo</span></h3>`;
     }
     _getHtmlForWebview() {

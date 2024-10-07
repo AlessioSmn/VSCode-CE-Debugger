@@ -153,7 +153,7 @@ export class NucleoInfo {
 				<span class="info">{{this}}</span>
     			<span>	
 					{{#unless this}}[DUMMY]{{/unless}}
-					{{#unless @last}}, {{/unless}}
+					{{#unless @last}} &#8594; {{/unless}}
 				</span>
 			{{/each}}
 			</p></div>
@@ -195,48 +195,76 @@ export class NucleoInfo {
 	private formatSemaphoreList(){
 		let semaphoreListJson = JSON.parse(this.semaphore_list);
 		let sem_count = semaphoreListJson.sem_list.length;
-		let sem_utn_list: any = [];
-		let sem_sys_list: any = [];
+		let sem_active_list: any = [];
+		let sem_inact_utn_list: any = [];
+		let sem_inact_sys_list: any = [];
 
 		semaphoreListJson.sem_list.forEach(element => {
-			if(element.livello == "utente") sem_utn_list.push(element);
-			else sem_sys_list.push(element);
+			if(element.sem_info.counter < 0) sem_active_list.push(element);
+			else{
+				if(element.livello == "utente") sem_inact_utn_list.push(element);
+				else sem_inact_sys_list.push(element);
+			}
 		});
 
 		let source = `
-		<div class="">
+		<div class="odd">
 			<h3>Semafori<span class="info">: ${sem_count}</span></h3>
 			<div class="">
-				<h3 class="p-title toggle"><span class="key">sistema</span><span class="info">: ${sem_utn_list.length}</span></h3>
-				<div class="toggable">
-					{{#each sem_utn_list}}
-					<div class="">
-						<h3 class="p-title toggle"><span class="key">[{{index}}]</span></h3>
-						<div class="toggable">
-							<div class="">
-								<p>Counter: <span>{{sem_info.counter}}</span></p>
-								{{#if sem_info.process_list.length}}
-									<p><span>Processi in coda (IDs): </span>
-									{{#each sem_info.process_list}}
-										<span class="info">{{this}}</span>
-										<span>	
-											{{#unless this}}[DUMMY]{{/unless}}
-											{{#unless @last}}, {{/unless}}
-										</span>
-									{{/each}}
-									</p>
-								{{/if}}
-							</div>
-						</div>
-					</div>
-					{{/each}}
-				</div>
-			</div>
+				<h3 class=""><span>Semafori occupati</span><span class="info">: ${sem_active_list.length}</span></h3>
 
-			<div class="">
-			<h3 class="p-title toggle"><span class="key">utente</span><span class="info">: ${sem_sys_list.length}</span></h3>
+				{{#each sem_active_list}}
+				<div class="">
+					<h5 class="p-title toggle">Sem <span class="key">[{{index}}]</span></h5>
+					<div class="toggable">
+						<div class="">
+							<p>Livello: <span>{{livello}}</span></p>
+							<p>Counter: <span>{{sem_info.counter}}</span></p>
+							{{#if sem_info.process_list.length}}
+								<p><span>Processi in coda (IDs): </span>
+								{{#each sem_info.process_list}}
+									<span class="info">{{this}}</span>
+									<span>	
+										{{#unless this}}[DUMMY]{{/unless}}
+										{{#unless @last}}, {{/unless}}
+									</span>
+								{{/each}}
+								</p>
+							{{/if}}
+						</div>
+					</div>
+				</div>
+				{{/each}}
+
+				<h3 class="p-title toggle"><span>Semafori liberi</span><span class="info">: ${sem_inact_sys_list.length} + ${sem_inact_utn_list.length} </span></h3>
 				<div class="toggable">
-					{{#each sem_sys_list}}
+					<h4 class="p-title toggle"><span class="key">Sistema</span><span class="info">: ${sem_inact_sys_list.length}</span></h4>
+					
+					{{#each sem_inact_sys_list}}
+					<div class="">
+						<h5 class="p-title toggle">Sem <span class="key">[{{index}}]</span></h5>
+						<div class="toggable">
+							<div class="">
+								<p>Counter: <span>{{sem_info.counter}}</span></p>
+								{{#if sem_info.process_list.length}}
+									<p><span>Processi in coda (IDs): </span>
+									{{#each sem_info.process_list}}
+										<span class="info">{{this}}</span>
+										<span>	
+											{{#unless this}}[DUMMY]{{/unless}}
+											{{#unless @last}}, {{/unless}}
+										</span>
+									{{/each}}
+									</p>
+								{{/if}}
+							</div>
+						</div>
+					</div>
+					{{/each}}
+
+					<h4 class="p-title toggle"><span class="key">Utente</span><span class="info">: ${sem_inact_utn_list.length}</span></h4>
+					
+					{{#each sem_inact_utn_list}}
 					<div class="">
 						<h3 class="p-title toggle"><span class="key">[{{index}}]</span></h3>
 						<div class="toggable">
@@ -257,13 +285,17 @@ export class NucleoInfo {
 						</div>
 					</div>
 					{{/each}}
+
 				</div>
 			</div>
 		</div>
 		`;
 
 		let template = Handlebars.compile(source);
-		return template({sem_utn_list: sem_utn_list, sem_sys_list: sem_sys_list});
+		return template({
+			sem_active_list: sem_active_list,
+			sem_inact_sys_list: sem_inact_sys_list, 
+			sem_inact_utn_list: sem_inact_utn_list});
 	}
 	
 	private formatProcessList(){
@@ -277,7 +309,7 @@ export class NucleoInfo {
 		});
 
 		let source = `
-		<div class="">
+		<div class="even">
 			<h3>Processi creati<span class="info">: ${proc_count}</span></h3>
 			<div class="">
 				<h3 class="p-title toggle"><span class="key">sistema</span><span class="info">: ${proc_sys.length}</span></h3>
