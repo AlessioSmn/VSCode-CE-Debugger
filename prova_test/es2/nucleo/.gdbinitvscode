@@ -27,3 +27,4 @@ break sistema.s:start
 continue
 delete 1
 source debug/vscode_nucleo.py
+source debug/vscode_vm.py
