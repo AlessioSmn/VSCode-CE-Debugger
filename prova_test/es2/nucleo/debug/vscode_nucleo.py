@@ -206,7 +206,6 @@ def process_dump(pid, proc, indent=0, verbosity=3):
     
     return proc_dmp
 
-
 def process_list(t='all'):
     for pid in range(max_proc):
         p = get_process(pid)
@@ -218,7 +217,6 @@ def process_list(t='all'):
         if t == "system" and proc['livello'] == gdb.Value(3):
             continue
         yield (pid, proc)
-
 
 def parse_process(a):
         if not a:
@@ -242,17 +240,17 @@ def parse_process(a):
             raise TypeError("expression must be a (pointer to) des_proc or a process id")
         return p
 
+
 class Process(gdb.Command):
     """info about processes"""
 
     def __init__(self):
         super(Process, self).__init__("process", gdb.COMMAND_DATA, prefix=True)
 
-
 class ProcessDump(gdb.Command):
     """show information from the des_proc of a process.
-The argument can be any expression returning a process id or a des_proc*.
-If no arguments are given, 'esecuzione->id' is assumed."""
+    The argument can be any expression returning a process id or a des_proc*.
+    If no arguments are given, 'esecuzione->id' is assumed."""
     def __init__(self):
         super(ProcessDump, self).__init__("process dump", gdb.COMMAND_DATA, gdb.COMPLETE_EXPRESSION)
 
@@ -262,12 +260,11 @@ If no arguments are given, 'esecuzione->id' is assumed."""
             raise gdb.GdbError("no such process")
         process_dump(p)
 
-
 class ProcessList(gdb.Command):
     """list existing processes
-The command accepts an optional argument which may be 'system'
-(show only system processes), 'user' (show only user processes)
-or 'all' (default, show all processes)."""
+    The command accepts an optional argument which may be 'system'
+    (show only system processes), 'user' (show only user processes)
+    or 'all' (default, show all processes)."""
 
     def __init__(self):
         super(ProcessList, self).__init__("process list", gdb.COMMAND_DATA)
@@ -282,10 +279,10 @@ or 'all' (default, show all processes)."""
         #     f.write(json.dumps(out))
         gdb.write(json.dumps(out) + "\n")
         
-
 Process()
 ProcessDump()
 ProcessList()
+
 
 def sem_list(cond='all'):
     sem = gdb.parse_and_eval("sem_allocati_utente")
@@ -300,7 +297,6 @@ def sem_list(cond='all'):
         if cond == 'waiting' and s['pointer'] == gdb.Value(0):
             continue
         yield (i + max_sem, s)
-
 
 class Semaphore(gdb.Command):
     """
