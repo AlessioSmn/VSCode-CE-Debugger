@@ -6,35 +6,31 @@ let interval: NodeJS.Timeout;
 export class VMInfo {
     public static currentPanel: VMInfo | undefined;
 
-	public static readonly viewType = 'nucleoInfo';
+	public static readonly viewType = 'vmInfo';
 
 	private readonly _extensionUri: vscode.Uri;
 	
-	public vm_tree: any | undefined;
+	public vm_maps: any | undefined;
 
     private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
 		this._panel = panel;
 		this._extensionUri = extensionUri;
-		// Set the webview's initial html content
-		this._update();
 
 		// Listen for when the panel is disposed
 		// This happens when the user closes the panel or when the panel is closed programmatically
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-
-        const session = vscode.debug.activeDebugSession;
-		const updateInfo = async () => {
-			this.vm_tree = this.customCommand(session, "vm");
-
-			const infoPanel = this._panel.webview;
-
-			infoPanel.html = this._getHtmlForWebview();
-		};
-
-        interval = setInterval(updateInfo, 500);
 	}
+
+	public refreshInfo = async() => {
+        const session = vscode.debug.activeDebugSession;
+
+		this.vm_maps = await this.customCommand(session, "vm maps");
+
+		const infoPanel = this._panel.webview;
+		infoPanel.html = this._getHtmlForWebview();
+	};
 
     public dispose() {
 		// Clean up our resources
@@ -43,19 +39,11 @@ export class VMInfo {
 		this._panel.dispose();
 	}
 
-    // Update the webview
-    private _update() {
-		// const infoPanel = this._panel.webview;
-        // infoPanel.html = this._getHtmlForWebview();
-	}
-
-
-    public static createInfoPanel(extensionUri: vscode.Uri) {
-		// Otherwise, create a new panel.
+    public static createInfoPanel(extensionUri: vscode.Uri, webViewPosition: vscode.ViewColumn) {
 		const panel = vscode.window.createWebviewPanel(
 			VMInfo.viewType,
 			'Virtual Memory Info',
-			vscode.ViewColumn.Beside,
+			webViewPosition,
 			getWebviewOptions(extensionUri),
 		);
 		VMInfo.currentPanel = new VMInfo(panel, extensionUri);		
@@ -79,10 +67,34 @@ export class VMInfo {
 		}     
     }
 
-	private formatVmTree(){
-		let foo = String(this.vm_tree);
-		console.debug(foo);
-		return `<h3>MEMORIA VIRTUALE<span class="info">: -todo</span></h3>`
+	private formatVmMaps(){
+		let vmMapsJson = JSON.parse(this.vm_maps);
+		let memPartsCount = vmMapsJson.mem_maps.length;
+		let mem_part: any = [];
+		vmMapsJson.mem_maps.forEach(element => {mem_part.push(element)});
+		let source = `
+			<div>
+				<h3>Zone di memoria<span class="info">: ${memPartsCount}</span></h3>
+				<div class="">
+				{{#each mem_part}}
+					<div>
+						<h3><span class="key">{{part}}</span></h3>
+						<div>
+						{{#each info}}
+							<p class="peperoni">
+								<span class="vm_maps {{access_type}}">
+								{{address}} {{addr_octal}} {{access_control_bits}}
+								</span>
+							</p>
+						{{/each}}
+						</div>		
+					</div>
+				{{/each}}
+				</div>
+			</div>
+		`;
+		let template = Handlebars.compile(source);
+		return template({mem_part: mem_part});
 	}
 
     private _getHtmlForWebview() {
@@ -113,7 +125,7 @@ export class VMInfo {
 					<title>-</title>
 				</head>
 				<body>
-					{{{VMtree}}}
+					{{{VMmaps}}}
 					<script src="${scriptUri}"></script>
 				</body>
 			</html>
@@ -122,7 +134,7 @@ export class VMInfo {
 		let template = Handlebars.compile(sourceDocument);
 		
 		return template({
-			VMtree: this.formatVmTree(),
+			VMmaps: this.formatVmMaps(),
 		});
 	}
 }

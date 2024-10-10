@@ -21,29 +21,25 @@ export class NucleoInfo {
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
 		this._panel = panel;
 		this._extensionUri = extensionUri;
-		// Set the webview's initial html content
-		this._update();
 
 		// Listen for when the panel is disposed
 		// This happens when the user closes the panel or when the panel is closed programmatically
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-
-
-        const session = vscode.debug.activeDebugSession;
-		const updateInfo = async () => {
-			this.process_list = await this.customCommand(session, "process list");
-			this.semaphore_list = await this.customCommand(session, "semaphore");
-			this.esecuzione = await this.customCommand(session, "esecuzione");
-			this.pronti = await this.customCommand(session, "pronti");
-			this.sospesi = await this.customCommand(session, "sospesi");
-			
-			const infoPanel = this._panel.webview;
-
-			infoPanel.html = this._getHtmlForWebview();
-		};
-
-        interval = setInterval(updateInfo, 500);
 	}
+
+	public refreshInfo = async () => {
+        const session = vscode.debug.activeDebugSession;
+
+		this.process_list = await this.customCommand(session, "process list");
+		this.semaphore_list = await this.customCommand(session, "semaphore");
+		this.esecuzione = await this.customCommand(session, "esecuzione");
+		this.pronti = await this.customCommand(session, "pronti");
+		this.sospesi = await this.customCommand(session, "sospesi");
+		
+		const infoPanel = this._panel.webview;
+
+		infoPanel.html = this._getHtmlForWebview();
+	};
 
     public dispose() {
 		// Clean up our resources
@@ -52,17 +48,11 @@ export class NucleoInfo {
 		this._panel.dispose();
 	}
 
-    // Update the webview
-    private _update() {
-	}
-
-
-    public static createInfoPanel(extensionUri: vscode.Uri) {
-		// Otherwise, create a new panel.
+    public static createInfoPanel(extensionUri: vscode.Uri, webViewPosition: vscode.ViewColumn) {
 		const panel = vscode.window.createWebviewPanel(
 			NucleoInfo.viewType,
 			'Info Nucleo',
-			vscode.ViewColumn.Beside,
+			webViewPosition,
 			getWebviewOptions(extensionUri),
 		);
 		NucleoInfo.currentPanel = new NucleoInfo(panel, extensionUri);		
@@ -208,7 +198,7 @@ export class NucleoInfo {
 		});
 
 		let source = `
-		<div class="odd">
+		<div>
 			<h3>Semafori<span class="info">: ${sem_count}</span></h3>
 			<div class="">
 				<h3 class=""><span>Semafori occupati</span><span class="info">: ${sem_active_list.length}</span></h3>
@@ -309,7 +299,7 @@ export class NucleoInfo {
 		});
 
 		let source = `
-		<div class="even">
+		<div>
 			<h3>Processi creati<span class="info">: ${proc_count}</span></h3>
 			<div class="">
 				<h3 class="p-title toggle"><span class="key">sistema</span><span class="info">: ${proc_sys.length}</span></h3>
@@ -450,8 +440,6 @@ export class NucleoInfo {
 		});
 	}
 }
-
-
 
 function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
 	return {
