@@ -79,20 +79,12 @@ img {
 	height: auto;
 }
 
-
-div.odd{
-	background-color: black;
+span.vm_maps{
+	color: rgb(255, 139, 139);
 }
-div.even{
-	background-color: darkslategray;
+span.vm_maps.R{
+	color: rgb(255, 243, 133);
 }
-main>div{
-	padding-top: 10px;
-	padding-bottom: 20px;
-}
-main>div:nth-child(odd){
-	background-color: darkslategray;
-}
-main>div:nth-child(even){
-	background-color: rgb(29, 63, 63);
+span.vm_maps.R.W{
+	color: rgb(138, 255, 138);
 }
