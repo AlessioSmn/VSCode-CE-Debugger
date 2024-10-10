@@ -34,8 +34,16 @@ const vmweb_1 = require("./vmweb");
 // Your extension is activated the very first time the command is executed
 function activate(context) {
     vscode.debug.onDidStartDebugSession(() => {
-        nucleoweb_1.NucleoInfo.createInfoPanel(context.extensionUri);
-        vmweb_1.VMInfo.createInfoPanel(context.extensionUri);
+        // Open a new column
+        nucleoweb_1.NucleoInfo.createInfoPanel(context.extensionUri, vscode.ViewColumn.Beside);
+        // Open next webviews in the same columns
+        vmweb_1.VMInfo.createInfoPanel(context.extensionUri, vscode.ViewColumn.Active);
+    });
+    // Called whenever a debugger command is issued (continue / step / etc..)
+    // Update nucleo info only when the debugger changes its state
+    vscode.debug.onDidChangeActiveStackItem(event => {
+        nucleoweb_1.NucleoInfo.currentPanel?.refreshInfo();
+        vmweb_1.VMInfo.currentPanel?.refreshInfo();
     });
     vscode.debug.onDidTerminateDebugSession(() => {
         nucleoweb_1.NucleoInfo.currentPanel?.dispose();
