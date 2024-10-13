@@ -112,7 +112,6 @@ def vm_dump_map(v, a):
     add_info['addr_octal'] = "-".join(vs)
     add_info['access_type'] = col
     MEM_MAPS[current_part]['info'].append(add_info)
-    
 
 """
  Access controls bits ( liv 4, 3, 2)
@@ -225,6 +224,75 @@ def vm_show_maps(cr3):
     # recursive call
     vm_show_maps_rec(cr3, max_liv, [], 0x7)
 
+def vm_paddr_to_str(f):
+    s = "0x{:08x}".format(toi(f))
+    return s 
+
+MEM_TREE = []
+
+flags  = { 1: 'W', 2: 'U', 3: 'w', 4: 'c', 5: 'A', 6: 'D', 7: 's' }
+nflags = { 1: 'R', 2: 'S', 3: '-', 4: '-', 5: '-', 6: '-', 7: '-' }
+
+def vm_decode(f, liv, vm_list, stop=max_liv, rngs=[range(512)]*max_liv):
+    # Slightly modified from original code:
+    #   - previous argument <indent> is removed (no formatting needed)
+    #   - previous argument <nonpresent> is always false
+
+    if liv > 0 and stop > 0:
+
+        # swipe all tab entries
+        for i in rngs[liv - 1]:
+
+            # get tab entry
+            tab_entry = readfis(f + i * 8)
+
+            # if entry is paged
+            if tab_entry & 1:
+
+                # get next table / frame address (zero all access bits)
+                f1 = tab_entry & ~0xFFF
+
+                # Get string info on all flags
+                fl = []
+                for j in flags:
+                    fl.append(flags[j] if tab_entry & (1 << j) else nflags[j])
+
+                # write tab entry index in octal representation
+                tab_entry_index_octal = ("{:03o}".format(i))
+
+                # construct a string with all access info
+                tab_entry_access_bits = "".join(fl)
+
+                # tab address
+                tab_address = vm_paddr_to_str(f1)
+                
+                # append entry and info
+                tab = {}
+                tab_entry_data = {}
+                tab_entry_data['octal'] = tab_entry_index_octal
+                tab_entry_data['access'] = tab_entry_access_bits
+                tab_entry_data['address'] = tab_address
+                tab['info'] = tab_entry_data
+                tab['sub_list'] = []
+                
+                # if not frame descriptor at > max_liv, show path for entire tab and append it to the entry
+                if not tab_entry & (1<<7):
+                    sub_list = []
+                    vm_decode(f1, liv - 1, sub_list, stop - 1, rngs)
+
+                    if sub_list:
+                        tab['sub_list'].append(sub_list)
+                
+                vm_list.append(tab)
+
+
+def vm_show_tree(f, liv=max_liv):
+    global MEM_TREE
+    MEM_TREE = []
+    
+    # TODO change back stop to max_liv
+    vm_decode(f, liv, MEM_TREE)
+
 
 class Vm(gdb.Command):
     """info about virtual memory"""
@@ -290,5 +358,27 @@ class VmMaps(gdb.Command):
         out['mem_maps'] = MEM_MAPS
         gdb.write(json.dumps(out) + '\n')
 
+class VmTree(gdb.Command):
+    def __init__(self):
+        super(VmTree, self).__init__("vm tree", gdb.COMMAND_DATA, gdb.COMPLETE_EXPRESSION)
+
+    def invoke(self, arg, from_tty):
+        out = {}
+        out['command'] = "vm tree"
+        out['arg'] = arg
+        global MEM_TREE
+
+        if arg:
+            f = toi(gdb.parse_and_eval(arg))
+        else:
+            f = toi(gdb.parse_and_eval('$cr3'))
+        vm_show_tree(f)
+        out['depth_level'] = max_liv
+        out['vm_tree'] = MEM_TREE
+        gdb.write(json.dumps(out) + "\n")
+
+
 Vm()
 VmMaps()
+VmTree()
+
