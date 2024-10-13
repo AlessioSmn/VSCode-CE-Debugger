@@ -11,6 +11,7 @@ export class VMInfo {
 	private readonly _extensionUri: vscode.Uri;
 	
 	public vm_maps: any | undefined;
+	public vm_tree: any | undefined;
 
     private readonly _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
@@ -27,6 +28,7 @@ export class VMInfo {
         const session = vscode.debug.activeDebugSession;
 
 		this.vm_maps = await this.customCommand(session, "vm maps");
+		this.vm_tree = await this.customCommand(session, "vm tree");
 
 		const infoPanel = this._panel.webview;
 		infoPanel.html = this._getHtmlForWebview();
@@ -49,7 +51,6 @@ export class VMInfo {
 		VMInfo.currentPanel = new VMInfo(panel, extensionUri);		
 	}
 
-    // execute custom command 
     private async customCommand(session: typeof vscode.debug.activeDebugSession, command: string, arg?: any){
 		if(session) {
 			const sTrace = await session.customRequest('stackTrace', { threadId: 1 });
@@ -81,7 +82,7 @@ export class VMInfo {
 						<h3><span class="key">{{part}}</span></h3>
 						<div>
 						{{#each info}}
-							<p class="peperoni">
+							<p>
 								<span class="vm_maps {{access_type}}">
 								{{address}} {{addr_octal}} {{access_control_bits}}
 								</span>
@@ -97,11 +98,48 @@ export class VMInfo {
 		return template({mem_part: mem_part});
 	}
 
+	private getVmTreeJsonParsed(){
+		let vmTreeJson = JSON.parse(this.vm_tree);
+		return vmTreeJson.vm_tree;
+	}
+		
+	private formatVmTree(){
+		let vmTreeJson = JSON.parse(this.vm_tree);
+		let vmLevels = parseInt(vmTreeJson.depth_level);
+
+		let vmTreeFirstLevel: any = [];
+
+		vmTreeJson.vm_tree.forEach(element => {
+			vmTreeFirstLevel.push(element);
+		});		
+		
+		let source = `
+			<div>
+				<h3>VM Mapping Tree</h3>
+				<div>
+				{{#each vmTreeFirstLevel}}
+					<div data-index-1="{{@index}}">
+						<p onclick="showSubList(this)">
+							<span>{{info.octal}}</span> - 
+							<span>{{info.address}}</span> - 
+							<span>{{info.access}}</span>
+						</p>
+					</div>
+				{{/each}}
+				</div>
+			</div>
+		`;
+		let template = Handlebars.compile(source);
+		return template({vmTreeFirstLevel: vmTreeFirstLevel});
+	}
+
     private _getHtmlForWebview() {
 		const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, '/media/webview', 'main.js');
+		const scriptPathOnDisk2 = vscode.Uri.joinPath(this._extensionUri, '/media/webview', 'vmTree.js');
 
 		// And the uri we use to load this script in the webview
 		const scriptUri = this._panel.webview.asWebviewUri(scriptPathOnDisk);
+		const scriptUri2 = this._panel.webview.asWebviewUri(scriptPathOnDisk2);
 
 		
 		// Local path to css styles
@@ -125,8 +163,13 @@ export class VMInfo {
 					<title>-</title>
 				</head>
 				<body>
+					{{{VMtree}}}
 					{{{VMmaps}}}
+					<script>
+						var vmTreeStringified = ${JSON.stringify(this.getVmTreeJsonParsed())};
+					</script>
 					<script src="${scriptUri}"></script>
+					<script src="${scriptUri2}"></script>
 				</body>
 			</html>
 		`;
@@ -134,7 +177,10 @@ export class VMInfo {
 		let template = Handlebars.compile(sourceDocument);
 		
 		return template({
+			VMtree: this.formatVmTree(),
 			VMmaps: this.formatVmMaps(),
+			// JSvar1: JSON.stringify(this.getVmTreeJsonParsed()),
+			// JSvar1: 5,
 		});
 	}
 }
