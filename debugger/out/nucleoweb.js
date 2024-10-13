@@ -65,7 +65,6 @@ class NucleoInfo {
         const panel = vscode.window.createWebviewPanel(NucleoInfo.viewType, 'Info Nucleo', webViewPosition, getWebviewOptions(extensionUri));
         NucleoInfo.currentPanel = new NucleoInfo(panel, extensionUri);
     }
-    // execute custom command 
     async customCommand(session, command, arg) {
         if (session) {
             const sTrace = await session.customRequest('stackTrace', { threadId: 1 });
@@ -84,7 +83,7 @@ class NucleoInfo {
     formatEsecuzione() {
         let esecuzioneJson = JSON.parse(this.esecuzione);
         if (esecuzioneJson.pointer == 0)
-            return `<h3>Esecuzione <span class="info title">empty</span></h3>`;
+            return `<div><h3>Esecuzione <span class="info title">empty</span></h3></div>`;
         let exec_dump = esecuzioneJson.exec_dump;
         let exec_pid = esecuzioneJson.pid;
         let source = `
@@ -134,7 +133,7 @@ class NucleoInfo {
         let pronti_count = prontiJson.process_list.length;
         let pronti_list = prontiJson.process_list;
         if (pronti_count == 0)
-            return `<h3>Coda pronti <span class="info title">empty</span></h3>`;
+            return `<div><h3>Coda pronti <span class="info title">empty</span></h3></div>`;
         let source = `
 		<div class="">
 			<h3>Coda pronti <span class="info title">${pronti_count} process${pronti_count == 1 ? 'o' : 'i'}</span></h3>
@@ -157,7 +156,7 @@ class NucleoInfo {
         let sospesi_count = sospesiJson.request_list.length;
         let sospesi_list = sospesiJson.request_list;
         if (sospesi_count == 0)
-            return `<h3>Processi sospesi <span class="info title">empty</span></h3>`;
+            return `<div><h3>Processi sospesi <span class="info title">empty</span></h3></div>`;
         let source = `
 		<div class="">
 			<h3>Processi sospesi <span class="info title">${sospesi_count} process${sospesi_count == 1 ? 'o' : 'i'}</span></h3>
@@ -221,10 +220,10 @@ class NucleoInfo {
 
 				<h3 class="p-title toggle"><span>Semafori liberi</span><span class="info">: ${sem_inact_sys_list.length} + ${sem_inact_utn_list.length} </span></h3>
 				<div class="toggable">
+
 					<h4 class="p-title toggle"><span class="key">Sistema</span><span class="info">: ${sem_inact_sys_list.length}</span></h4>
-					
 					{{#each sem_inact_sys_list}}
-					<div class="">
+					<div class="toggable">
 						<h5 class="p-title toggle">Sem <span class="key">[{{index}}]</span></h5>
 						<div class="toggable">
 							<div class="">
@@ -246,9 +245,8 @@ class NucleoInfo {
 					{{/each}}
 
 					<h4 class="p-title toggle"><span class="key">Utente</span><span class="info">: ${sem_inact_utn_list.length}</span></h4>
-					
 					{{#each sem_inact_utn_list}}
-					<div class="">
+					<div class="toggable">
 						<h3 class="p-title toggle"><span class="key">[{{index}}]</span></h3>
 						<div class="toggable">
 							<div class="">
@@ -403,13 +401,9 @@ class NucleoInfo {
 				</head>
 				<body>
 					{{{executionProcess}}}
-					<hr>
 					{{{readyProcessList}}}
-					<hr>
 					{{{suspendedList}}}
-					<hr>
 					{{{semaphoreList}}}
-					<hr>
 					{{{processList}}}
 					<script src="${scriptUri}"></script>
 				</body>
