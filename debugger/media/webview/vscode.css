@@ -7,7 +7,7 @@
 }
 
 body {
-	padding: 0 var(--container-padding);
+	padding: 0px;
 	color: var(--vscode-foreground);
 	font-size: var(--vscode-font-size);
 	font-weight: 300;

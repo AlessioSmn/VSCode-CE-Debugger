@@ -88,3 +88,16 @@ span.vm_maps.R{
 span.vm_maps.R.W{
 	color: rgb(138, 255, 138);
 }
+
+body>div{
+	padding-left: 1rem;
+	padding-right: 1rem;
+	padding-top: 0.5rem;
+	padding-bottom: 1rem;
+}
+body>div:nth-of-type(odd){
+	background-color: transparent;
+}
+body>div:nth-of-type(even){
+	background-color: rgba(0, 0, 0, 0.15);
+}
