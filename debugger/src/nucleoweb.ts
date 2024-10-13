@@ -58,7 +58,6 @@ export class NucleoInfo {
 		NucleoInfo.currentPanel = new NucleoInfo(panel, extensionUri);		
 	}
 
-    // execute custom command 
     private async customCommand(session: typeof vscode.debug.activeDebugSession, command: string, arg?: any){
 		if(session) {
 			const sTrace = await session.customRequest('stackTrace', { threadId: 1 });
@@ -79,7 +78,7 @@ export class NucleoInfo {
 	private formatEsecuzione(){
 		let esecuzioneJson = JSON.parse(this.esecuzione);
 		if(esecuzioneJson.pointer == 0)
-			return `<h3>Esecuzione <span class="info title">empty</span></h3>`;
+			return `<div><h3>Esecuzione <span class="info title">empty</span></h3></div>`;
 
 		let exec_dump = esecuzioneJson.exec_dump;
 		let exec_pid = esecuzioneJson.pid;
@@ -133,7 +132,7 @@ export class NucleoInfo {
 		let pronti_list = prontiJson.process_list;
 
 		if(pronti_count == 0)
-			return `<h3>Coda pronti <span class="info title">empty</span></h3>`;
+			return `<div><h3>Coda pronti <span class="info title">empty</span></h3></div>`;
 		
 		let source = `
 		<div class="">
@@ -161,7 +160,7 @@ export class NucleoInfo {
 		let sospesi_list = sospesiJson.request_list;
 
 		if(sospesi_count == 0)
-			return `<h3>Processi sospesi <span class="info title">empty</span></h3>`;
+			return `<div><h3>Processi sospesi <span class="info title">empty</span></h3></div>`;
 		
 		let source = `
 		<div class="">
@@ -228,10 +227,10 @@ export class NucleoInfo {
 
 				<h3 class="p-title toggle"><span>Semafori liberi</span><span class="info">: ${sem_inact_sys_list.length} + ${sem_inact_utn_list.length} </span></h3>
 				<div class="toggable">
+
 					<h4 class="p-title toggle"><span class="key">Sistema</span><span class="info">: ${sem_inact_sys_list.length}</span></h4>
-					
 					{{#each sem_inact_sys_list}}
-					<div class="">
+					<div class="toggable">
 						<h5 class="p-title toggle">Sem <span class="key">[{{index}}]</span></h5>
 						<div class="toggable">
 							<div class="">
@@ -253,9 +252,8 @@ export class NucleoInfo {
 					{{/each}}
 
 					<h4 class="p-title toggle"><span class="key">Utente</span><span class="info">: ${sem_inact_utn_list.length}</span></h4>
-					
 					{{#each sem_inact_utn_list}}
-					<div class="">
+					<div class="toggable">
 						<h3 class="p-title toggle"><span class="key">[{{index}}]</span></h3>
 						<div class="toggable">
 							<div class="">
@@ -416,13 +414,9 @@ export class NucleoInfo {
 				</head>
 				<body>
 					{{{executionProcess}}}
-					<hr>
 					{{{readyProcessList}}}
-					<hr>
 					{{{suspendedList}}}
-					<hr>
 					{{{semaphoreList}}}
-					<hr>
 					{{{processList}}}
 					<script src="${scriptUri}"></script>
 				</body>
