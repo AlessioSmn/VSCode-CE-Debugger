@@ -46,13 +46,14 @@ class NucleoInfo {
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
     }
     refreshInfo = async () => {
+        const infoPanel = this._panel.webview;
+        infoPanel.html = this._getLoadingPage();
         const session = vscode.debug.activeDebugSession;
         this.process_list = await this.customCommand(session, "process list");
         this.semaphore_list = await this.customCommand(session, "semaphore");
         this.esecuzione = await this.customCommand(session, "esecuzione");
         this.pronti = await this.customCommand(session, "pronti");
         this.sospesi = await this.customCommand(session, "sospesi");
-        const infoPanel = this._panel.webview;
         infoPanel.html = this._getHtmlForWebview();
     };
     dispose() {
@@ -417,6 +418,43 @@ class NucleoInfo {
             semaphoreList: this.formatSemaphoreList(),
             processList: this.formatProcessList(),
         });
+    }
+    _getLoadingPage() {
+        let sourceDocument = `
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<meta name="viewport" content="width=device-width, initial-scale=1">
+				<style>
+					.loader {
+						width: 80px;
+						height: 80px;
+						margin: auto;
+						margin-top: 40px;
+						border: 20px solid rgba(0, 0, 0, 0.15);
+						border-radius: 50%;
+						border-top: 20px solid #007ACC;
+						animation: spin 2s linear infinite;
+					}
+					.text-container {
+						text-align: center;
+						margin-top: 10px;
+					}
+
+					@keyframes spin {
+						0% { transform: rotate(0deg); }
+						100% { transform: rotate(360deg); }
+					}
+				</style>
+			</head>
+			<body>
+				<div class="loader"></div>
+				<div class="text-container"><h1>Loading</h1></div>
+			</body>
+			</html>
+		`;
+        let template = Handlebars.compile(sourceDocument);
+        return template();
     }
 }
 exports.NucleoInfo = NucleoInfo;
