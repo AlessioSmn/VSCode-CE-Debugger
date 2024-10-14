@@ -25,12 +25,14 @@ export class VMInfo {
 	}
 
 	public refreshInfo = async() => {
+		const infoPanel = this._panel.webview;
+		infoPanel.html = this._getLoadingPage();
+
         const session = vscode.debug.activeDebugSession;
 
 		this.vm_maps = await this.customCommand(session, "vm maps");
 		this.vm_tree = await this.customCommand(session, "vm tree");
 
-		const infoPanel = this._panel.webview;
 		infoPanel.html = this._getHtmlForWebview();
 	};
 
@@ -116,19 +118,18 @@ export class VMInfo {
 		let source = `
 			<div>
 				<h3>VM Mapping Tree</h3>
-				<div>
+				<div class="vm_tree_root">
 				{{#each vmTreeFirstLevel}}
-					<div data-index-1="{{@index}}">
+					<div data-index-1="{{@index}}" data-opened="0">
 						<p onclick="showSubList(this)">
-							<span>{{info.octal}}</span> - 
-							<span>{{info.address}}</span> - 
-							<span>{{info.access}}</span>
+							{{info.octal}} - {{info.address}} - {{info.access}}
 						</p>
 					</div>
 				{{/each}}
 				</div>
 			</div>
 		`;
+
 		let template = Handlebars.compile(source);
 		return template({vmTreeFirstLevel: vmTreeFirstLevel});
 	}
@@ -178,10 +179,48 @@ export class VMInfo {
 		
 		return template({
 			VMtree: this.formatVmTree(),
-			VMmaps: this.formatVmMaps(),
-			// JSvar1: JSON.stringify(this.getVmTreeJsonParsed()),
-			// JSvar1: 5,
+			VMmaps: this.formatVmMaps()
 		});
+	}
+
+    private _getLoadingPage() {
+		let sourceDocument = `
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<meta name="viewport" content="width=device-width, initial-scale=1">
+				<style>
+					.loader {
+						width: 80px;
+						height: 80px;
+						margin: auto;
+						margin-top: 40px;
+						border: 20px solid rgba(0, 0, 0, 0.15);
+						border-radius: 50%;
+						border-top: 20px solid #007ACC;
+						animation: spin 2s linear infinite;
+					}
+					.text-container {
+						text-align: center;
+						margin-top: 10px;
+					}
+
+					@keyframes spin {
+						0% { transform: rotate(0deg); }
+						100% { transform: rotate(360deg); }
+					}
+				</style>
+			</head>
+			<body>
+				<div class="loader"></div>
+				<div class="text-container"><h1>Loading</h1></div>
+			</body>
+			</html>
+		`;
+
+		let template = Handlebars.compile(sourceDocument);
+		
+		return template();
 	}
 }
 
