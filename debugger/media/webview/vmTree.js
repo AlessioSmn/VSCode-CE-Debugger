@@ -32,39 +32,46 @@ function getElementSubList(indexArray){
     return elem;
 }
 
-function showSubList(callerElement, PIPPO = false){
+function clearElementSiblings(element){
+    let parentElement = element.parentElement;
+
+    Array.from(parentElement.children).forEach(child => {
+        if (child !== element)
+            parentElement.removeChild(child);
+    });
+}
+
+function showSubList(callerElement){
     let divCallerElement = callerElement.parentElement;
     let treeIndexes = getListsIndexes(divCallerElement);
+
+    let isAlreadyOpened = parseInt(divCallerElement.getAttribute("data-opened"));
+    if(isAlreadyOpened){
+        clearElementSiblings(callerElement);
+        divCallerElement.setAttribute("data-opened", 0);
+        return;
+    }
     
     let elementLevel = treeIndexes.length + 1;
     let subList = getElementSubList(treeIndexes);
 
     let i = 0;
     subList.forEach(element => {
-        let child = document.createElement("div");
+        let childContainer = document.createElement("div");
         for(let j = 0; j < treeIndexes.length; j++)
-            child.setAttribute("data-index-" + (j+1), treeIndexes[j]);
-        child.setAttribute("data-index-" + elementLevel, i);
+            childContainer.setAttribute("data-index-" + (j+1), treeIndexes[j]);
+        childContainer.setAttribute("data-index-" + elementLevel, i);
+        childContainer.setAttribute("data-opened", 0);
 
-        let par = document.createElement("p");
-        par.onclick = function() { showSubList(par); }; 
-
-        let span_oct = document.createElement("span");
-        span_oct.innerText = element.info.octal;
-        let span_addr = document.createElement("span");
-        span_addr.innerText = element.info.address;
-        let span_acc = document.createElement("span");
-        span_acc.innerText = element.info.access;
-        par.appendChild(span_oct);
-        par.innerHTML += " - ";
-        par.appendChild(span_addr);
-        par.innerHTML += " - ";
-        par.appendChild(span_acc);
-
-        child.appendChild(par);
+        let childText = document.createElement("p");
+        childText.onclick = function() { showSubList(childText); }; 
+        childText.innerText = element.info.octal + " - " + element.info.address + " - " + element.info.access;
+        childContainer.appendChild(childText);
         
-        child.style.marginLeft = "20px";
-        divCallerElement.appendChild(child);
+        childContainer.style.marginLeft = "20px";
+        divCallerElement.appendChild(childContainer);
         i++;
     });
+
+    divCallerElement.setAttribute("data-opened", 1);
 }
