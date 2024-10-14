@@ -8,28 +8,23 @@ import termios
 import json
 from gdb.FrameDecorator import FrameDecorator
 
-
-# cache some constants
 try:
     max_liv  = int(gdb.parse_and_eval('MAX_LIV'))
 except:
     max_liv = 4
-try:
-    sc_desc  = int(gdb.parse_and_eval('$SEL_CODICE_SISTEMA'))
-    uc_desc  = int(gdb.parse_and_eval('$SEL_CODICE_UTENTE'))
-    ud_desc  = int(gdb.parse_and_eval('$SEL_DATI_UTENTE'))
-except:
-    sc_desc = 0x8
-    uc_desc = 0x13
-    ud_desc = 0x1b
-
-def readfis(addr):
-    return struct.unpack('Q', bytes(qemu.read_memory(addr, 8)))[0]
 
 current_part = 0
 MEM_MAPS = {}
 cs_cur = 0
 wp_cur = 0
+MEM_TREE = []
+vm_last = 0xffff
+
+flags  = { 1: 'W', 2: 'U', 3: 'w', 4: 'c', 5: 'A', 6: 'D', 7: 's' }
+nflags = { 1: 'R', 2: 'S', 3: '-', 4: '-', 5: '-', 6: '-', 7: '-' }
+
+def readfis(addr):
+    return struct.unpack('Q', bytes(qemu.read_memory(addr, 8)))[0]
 
 def vm_access_byte_to_str(a):
     if not a & 1:
@@ -113,31 +108,6 @@ def vm_dump_map(v, a):
     add_info['access_type'] = col
     MEM_MAPS[current_part]['info'].append(add_info)
 
-"""
- Access controls bits ( liv 4, 3, 2)
- [
-    7:  PS - 1 entry is if frame address
-    6:  /
-    5:  A (Accessed) - 
-    4:  /
-    3:  /
-    2:  U/S - 
-    1:  R/W - 1 if write is allowed
-    0:  P - 1 if table is mapped
- ]
-
- Access controls bits ( liv 1)
- [
-    6:  D (Data, written) - 1 if write operation has been perfomed
-    5:  A (Accessed) - 1 if frame has been accessed
-    4:  PCT (Page Cache Disable) - 
-    3:  PWT (Page Write Through) - 
-    2:  U/S - 
-    1:  R/W - 1 if write is allowed
-    0:  P - 1 if frame is mapped
- ]
-"""
-vm_last = 0xffff
 def vm_show_maps_rec(tab, liv, virt, cur):
     '''
         tab:    table address
@@ -199,11 +169,11 @@ def vm_show_maps_rec(tab, liv, virt, cur):
             vm_show_maps_rec(f, liv - 1, virt, a)
         
         # otherwise (entry is frame address),
-        # if access bits ?
+        # if access bits are different from last printed space
         elif a != vm_last:
             # print info of virtual address space
             vm_dump_map(virt, a)
-            # ?
+            # update access bit information on the last printed space
             vm_last = a
         
         # empty the virt array (recursive call, only empty current element)
@@ -227,11 +197,6 @@ def vm_show_maps(cr3):
 def vm_paddr_to_str(f):
     s = "0x{:08x}".format(toi(f))
     return s 
-
-MEM_TREE = []
-
-flags  = { 1: 'W', 2: 'U', 3: 'w', 4: 'c', 5: 'A', 6: 'D', 7: 's' }
-nflags = { 1: 'R', 2: 'S', 3: '-', 4: '-', 5: '-', 6: '-', 7: '-' }
 
 def vm_decode(f, liv, vm_list, stop=max_liv, rngs=[range(512)]*max_liv):
     # Slightly modified from original code:
@@ -286,16 +251,7 @@ def vm_decode(f, liv, vm_list, stop=max_liv, rngs=[range(512)]*max_liv):
                 vm_list.append(tab)
 
 
-def vm_show_tree(f, liv=max_liv):
-    global MEM_TREE
-    MEM_TREE = []
-    
-    # TODO change back stop to max_liv
-    vm_decode(f, liv, MEM_TREE)
-
-
 class Vm(gdb.Command):
-    """info about virtual memory"""
 
     def __init__(self):
         super(Vm, self).__init__("vm", gdb.COMMAND_DATA, prefix=True)
@@ -359,24 +315,52 @@ class VmMaps(gdb.Command):
         gdb.write(json.dumps(out) + '\n')
 
 class VmTree(gdb.Command):
+    """
+    Show the translation tree of a virtual address space
+    The command acceptes an optional argument which is a process id ('esecuzione->id' is assumed by default).
+
+    The output is formatted as a JSON object, structured as:
+    {
+        "command": "vm table"
+        "arg": <command argument, empty if no argument is provided>
+        "depth_level": <table levels>
+        "vm_tree": [
+            {
+                "info": {
+                    "address": <virtual space address (initial address)>
+                    "access": <access control bits>
+                    "octal": <octal address mapping>
+                }
+                "sub_list": {
+                    {{same estructure as parent node}}
+                }
+            },
+            ...,
+        ]
+    }
+    """
+
     def __init__(self):
         super(VmTree, self).__init__("vm tree", gdb.COMMAND_DATA, gdb.COMPLETE_EXPRESSION)
 
     def invoke(self, arg, from_tty):
+        global MEM_TREE
+        MEM_TREE = []
+
         out = {}
         out['command'] = "vm tree"
         out['arg'] = arg
-        global MEM_TREE
+        out['depth_level'] = max_liv
 
         if arg:
             f = toi(gdb.parse_and_eval(arg))
         else:
             f = toi(gdb.parse_and_eval('$cr3'))
-        vm_show_tree(f)
-        out['depth_level'] = max_liv
-        out['vm_tree'] = MEM_TREE
-        gdb.write(json.dumps(out) + "\n")
 
+        vm_decode(f, max_liv, MEM_TREE)
+        out['vm_tree'] = MEM_TREE
+
+        gdb.write(json.dumps(out) + "\n")
 
 Vm()
 VmMaps()
