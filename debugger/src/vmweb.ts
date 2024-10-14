@@ -77,7 +77,7 @@ export class VMInfo {
 		vmMapsJson.mem_maps.forEach(element => {mem_part.push(element)});
 		let source = `
 			<div>
-				<h3>Zone di memoria<span class="info">: ${memPartsCount}</span></h3>
+				<h2>Zone di memoria</h2>
 				<div class="">
 				{{#each mem_part}}
 					<div>
@@ -117,7 +117,7 @@ export class VMInfo {
 		
 		let source = `
 			<div>
-				<h3>VM Mapping Tree</h3>
+				<h2>VM Mapping Tree</h2>
 				<div class="vm_tree_root">
 				{{#each vmTreeFirstLevel}}
 					<div data-index-1="{{@index}}" data-opened="0">

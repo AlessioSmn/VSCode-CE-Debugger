@@ -11,9 +11,6 @@ html {
 }
 
 body,
-h1,
-h2,
-h3,
 h4,
 h5,
 h6,
@@ -22,6 +19,17 @@ ol,
 ul {
 	margin: 0;
 	padding: 0;
+	font-weight: normal;
+}
+
+h2{
+	margin: 0;
+	padding: 10px 40px; /* top|bottom - left|right */
+	font-weight: normal;
+}
+h3{
+	margin: 0;
+	padding: 10px 20px; /* top|bottom - left|right */
 	font-weight: normal;
 }
 

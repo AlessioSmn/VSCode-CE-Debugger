@@ -79,14 +79,14 @@ export class NucleoInfo {
 	private formatEsecuzione(){
 		let esecuzioneJson = JSON.parse(this.esecuzione);
 		if(esecuzioneJson.pointer == 0)
-			return `<div><h3>Esecuzione <span class="info title">empty</span></h3></div>`;
+			return `<div><h2>Esecuzione <span class="info title">empty</span></h2></div>`;
 
 		let exec_dump = esecuzioneJson.exec_dump;
 		let exec_pid = esecuzioneJson.pid;
 		let source = `
 
 		<div class="">
-			<h3>Esecuzione <span class="info title">id: ${exec_pid}</span></h3>
+			<h2>Esecuzione <span class="info title">id: ${exec_pid}</span></h2>
 			<p class="toggle">Informazioni sul processo</p>
 			{{#each exec_dump}}
 			<ul class="p-dump toggable">
@@ -133,11 +133,11 @@ export class NucleoInfo {
 		let pronti_list = prontiJson.process_list;
 
 		if(pronti_count == 0)
-			return `<div><h3>Coda pronti <span class="info title">empty</span></h3></div>`;
+			return `<div><h2>Coda pronti <span class="info title">empty</span></h2></div>`;
 		
 		let source = `
 		<div class="">
-			<h3>Coda pronti <span class="info title">${pronti_count} process${pronti_count == 1 ? 'o' : 'i'}</span></h3>
+			<h2>Coda pronti <span class="info title">${pronti_count} process${pronti_count == 1 ? 'o' : 'i'}</span></h2>
 			<div><p>
 			{{#each pronti_list}}
 				<span class="info">{{this}}</span>
@@ -161,11 +161,11 @@ export class NucleoInfo {
 		let sospesi_list = sospesiJson.request_list;
 
 		if(sospesi_count == 0)
-			return `<div><h3>Processi sospesi <span class="info title">empty</span></h3></div>`;
+			return `<div><h2>Processi sospesi <span class="info title">empty</span></h2></div>`;
 		
 		let source = `
 		<div class="">
-			<h3>Processi sospesi <span class="info title">${sospesi_count} process${sospesi_count == 1 ? 'o' : 'i'}</span></h3>
+			<h2>Processi sospesi <span class="info title">${sospesi_count} process${sospesi_count == 1 ? 'o' : 'i'}</span></h2>
 			<div><ul>
 				{{#each sospesi_list}}
 				<li>
@@ -199,7 +199,7 @@ export class NucleoInfo {
 
 		let source = `
 		<div>
-			<h3>Semafori<span class="info">: ${sem_count}</span></h3>
+			<h2>Semafori<span class="info">: ${sem_count}</span></h2>
 			<div class="">
 				<h3 class=""><span>Semafori occupati</span><span class="info">: ${sem_active_list.length}</span></h3>
 
@@ -299,7 +299,7 @@ export class NucleoInfo {
 
 		let source = `
 		<div>
-			<h3>Processi creati<span class="info">: ${proc_count}</span></h3>
+			<h2>Processi creati<span class="info">: ${proc_count}</span></h2>
 			<div class="">
 				<h3 class="p-title toggle"><span class="key">sistema</span><span class="info">: ${proc_sys.length}</span></h3>
 				<div class="toggable">
