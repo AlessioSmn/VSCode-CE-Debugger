@@ -271,23 +271,14 @@ class VmMaps(gdb.Command):
                 "info": {
                     [
                         "address": <virtual space address (initial address)>
-                        "access_control_bits": <access control bits>
-                        "addr_octal": <octal address mapping>
+                        "access": <access control bits>
+                        "octal": <octal address mapping>
                     ],
                     [
                         "address": <virtual space address (initial address)>
-                        "access_control_bits": <access control bits>
-                        "addr_octal": <octal address mapping>
+                        "access": <access control bits>
+                        "octal": <octal address mapping>
                     ]
-                }
-            },
-            ...,
-            {
-                "part": <memory part 2 name>
-                "info": {
-                    "address": <virtual space address (initial address)>
-                    "access_control_bits": <access control bits>
-                    "vs": <vs>
                 }
             },
             ...,
@@ -331,9 +322,9 @@ class VmTree(gdb.Command):
                     "access": <access control bits>
                     "octal": <octal address mapping>
                 }
-                "sub_list": {
+                "sub_list": [
                     {{same estructure as parent node}}
-                }
+                ]
             },
             ...,
         ]

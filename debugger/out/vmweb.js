@@ -83,7 +83,7 @@ class VMInfo {
         let source = `
 			<div>
 				<h2>Zone di memoria</h2>
-				<div class="">
+				<div>
 				{{#each mem_part}}
 					<div>
 						<h3><span class="key">{{part}}</span></h3>
@@ -132,6 +132,21 @@ class VMInfo {
         let template = Handlebars.compile(source);
         return template({ vmTreeFirstLevel: vmTreeFirstLevel });
     }
+    vmPathAnalyzer() {
+        let source = `
+			<div>
+				<h2>VM Translation Path</h2>
+				<input type="text" id="vmadd">
+				<button onclick="showTranslationPath()">Show path</button>
+				<div id="vmPath"></div>
+				<h3>Translation result</h3>
+				<div id="vmPathResult">
+				</div>
+			</div>
+		`;
+        let template = Handlebars.compile(source);
+        return template();
+    }
     _getHtmlForWebview() {
         const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, '/media/webview', 'main.js');
         const scriptPathOnDisk2 = vscode.Uri.joinPath(this._extensionUri, '/media/webview', 'vmTree.js');
@@ -157,6 +172,7 @@ class VMInfo {
 					<title>-</title>
 				</head>
 				<body>
+					{{{VMpath}}}
 					{{{VMtree}}}
 					{{{VMmaps}}}
 					<script>
@@ -169,6 +185,7 @@ class VMInfo {
 		`;
         let template = Handlebars.compile(sourceDocument);
         return template({
+            VMpath: this.vmPathAnalyzer(),
             VMtree: this.formatVmTree(),
             VMmaps: this.formatVmMaps()
         });
