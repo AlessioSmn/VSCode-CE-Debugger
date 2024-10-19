@@ -89,7 +89,7 @@ class NucleoInfo {
         let exec_pid = esecuzioneJson.pid;
         let source = `
 
-		<div class="">
+		<div>
 			<h2>Esecuzione <span class="info title">id: ${exec_pid}</span></h2>
 			<p class="toggle">Informazioni sul processo</p>
 			{{#each exec_dump}}
@@ -136,7 +136,7 @@ class NucleoInfo {
         if (pronti_count == 0)
             return `<div><h2>Coda pronti <span class="info title">empty</span></h2></div>`;
         let source = `
-		<div class="">
+		<div>
 			<h2>Coda pronti <span class="info title">${pronti_count} process${pronti_count == 1 ? 'o' : 'i'}</span></h2>
 			<div><p>
 			{{#each pronti_list}}
@@ -159,7 +159,7 @@ class NucleoInfo {
         if (sospesi_count == 0)
             return `<div><h2>Processi sospesi <span class="info title">empty</span></h2></div>`;
         let source = `
-		<div class="">
+		<div>
 			<h2>Processi sospesi <span class="info title">${sospesi_count} process${sospesi_count == 1 ? 'o' : 'i'}</span></h2>
 			<div><ul>
 				{{#each sospesi_list}}
@@ -193,14 +193,14 @@ class NucleoInfo {
         let source = `
 		<div>
 			<h2>Semafori<span class="info">: ${sem_count}</span></h2>
-			<div class="">
-				<h3 class=""><span>Semafori occupati</span><span class="info">: ${sem_active_list.length}</span></h3>
+			<div>
+				<h3><span>Semafori occupati </span><span class="info">${sem_active_list.length}</span></h3>
 
 				{{#each sem_active_list}}
-				<div class="">
+				<div>
 					<h5 class="p-title toggle">Sem <span class="key">[{{index}}]</span></h5>
 					<div class="toggable">
-						<div class="">
+						<div>
 							<p>Livello: <span>{{livello}}</span></p>
 							<p>Counter: <span>{{sem_info.counter}}</span></p>
 							{{#if sem_info.process_list.length}}
@@ -219,52 +219,34 @@ class NucleoInfo {
 				</div>
 				{{/each}}
 
-				<h3 class="p-title toggle"><span>Semafori liberi</span><span class="info">: ${sem_inact_sys_list.length} + ${sem_inact_utn_list.length} </span></h3>
-				<div class="toggable">
+				<h3><span>Semafori liberi </span><span class="info">${sem_inact_sys_list.length} + ${sem_inact_utn_list.length} </span></h3>
+				<div>
 
-					<h4 class="p-title toggle"><span class="key">Sistema</span><span class="info">: ${sem_inact_sys_list.length}</span></h4>
+					<h4>
+						<span class="key">Sistema </span>
+						<span class="info">${sem_inact_sys_list.length}</span>
+					</h4>
 					{{#each sem_inact_sys_list}}
-					<div class="toggable">
-						<h5 class="p-title toggle">Sem <span class="key">[{{index}}]</span></h5>
-						<div class="toggable">
-							<div class="">
-								<p>Counter: <span>{{sem_info.counter}}</span></p>
-								{{#if sem_info.process_list.length}}
-									<p><span>Processi in coda (IDs): </span>
-									{{#each sem_info.process_list}}
-										<span class="info">{{this}}</span>
-										<span>	
-											{{#unless this}}[DUMMY]{{/unless}}
-											{{#unless @last}}, {{/unless}}
-										</span>
-									{{/each}}
-									</p>
-								{{/if}}
-							</div>
-						</div>
+					<div>
+						<p>
+							Sem 
+							<span class="key">[{{index}}]</span>
+							- counter: <span>{{sem_info.counter}}</span>
+						</p>
 					</div>
 					{{/each}}
 
-					<h4 class="p-title toggle"><span class="key">Utente</span><span class="info">: ${sem_inact_utn_list.length}</span></h4>
+					<h4>
+						<span class="key">Utente </span>
+						<span class="info">${sem_inact_utn_list.length}</span>
+					</h4>
 					{{#each sem_inact_utn_list}}
-					<div class="toggable">
-						<h3 class="p-title toggle"><span class="key">[{{index}}]</span></h3>
-						<div class="toggable">
-							<div class="">
-								<p>Counter: <span>{{sem_info.counter}}</span></p>
-								{{#if sem_info.process_list.length}}
-									<p><span>Processi in coda (IDs): </span>
-									{{#each sem_info.process_list}}
-										<span class="info">{{this}}</span>
-										<span>	
-											{{#unless this}}[DUMMY]{{/unless}}
-											{{#unless @last}}, {{/unless}}
-										</span>
-									{{/each}}
-									</p>
-								{{/if}}
-							</div>
-						</div>
+					<div>
+						<p>
+							Sem 
+							<span class="key">[{{index}}]</span>
+							- counter: <span>{{sem_info.counter}}</span>
+						</p>
 					</div>
 					{{/each}}
 
@@ -293,11 +275,11 @@ class NucleoInfo {
         let source = `
 		<div>
 			<h2>Processi creati<span class="info">: ${proc_count}</span></h2>
-			<div class="">
-				<h3 class="p-title toggle"><span class="key">sistema</span><span class="info">: ${proc_sys.length}</span></h3>
+			<div>
+				<h3 class="p-title toggle"><span class="key">Sistema </span><span class="info">${proc_sys.length}</span></h3>
 				<div class="toggable">
 					{{#each proc_sys}}
-						<div class="">
+						<div>
 							<h3 class="p-title toggle"><span class="key">[{{pid}}]</span><span class="info">: object</span></h3>
 							<ul class="p-dump toggable">
 								<li class="p-item"><span class="key"> pid = </span> <span class="value">{{pid}}</span></li>			
@@ -333,11 +315,11 @@ class NucleoInfo {
 					{{/each}}
 				</div>
 			</div>
-			<div class="">
-				<h3 class="p-title toggle"><span class="key">utente</span><span class="info">: ${proc_utn.length}</span></h3>
+			<div>
+				<h3 class="p-title toggle"><span class="key">Utente</span><span class="info"> ${proc_utn.length}</span></h3>
 				<div class="toggable">
 					{{#each proc_utn}}
-						<div class="">
+						<div>
 							<h3 class="p-title toggle"><span class="key">[{{pid}}]</span><span class="info">: object</span></h3>
 							<ul class="p-dump toggable">
 								<li class="p-item"><span class="key"> pid = </span> <span class="value">{{pid}}</span></li>			
