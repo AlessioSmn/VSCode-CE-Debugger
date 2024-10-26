@@ -1,29 +1,26 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { NucleoInfo } from './nucleoweb';
-import { VMInfo } from './vmweb';
+import { NucleoInfo } from './nucleoinfo';
+import { PanelType } from './nucleoinfo';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+// Called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
 	vscode.debug.onDidStartDebugSession( ()=>{
-        // Open a new column
-        NucleoInfo.createInfoPanel(context.extensionUri, vscode.ViewColumn.Beside);
-        // Open next webviews in the same columns
-        VMInfo.createInfoPanel(context.extensionUri, vscode.ViewColumn.Active);
+        NucleoInfo.createPanel(PanelType.Process, context.extensionUri, vscode.ViewColumn.Beside);
+        NucleoInfo.createPanel(PanelType.Memory, context.extensionUri, vscode.ViewColumn.Active);
     }); 
 
     // Called whenever a debugger command is issued (continue / step / etc..)
-    // Update nucleo info only when the debugger changes its state
+    // In order to update information only when the debugger changes its state
     vscode.debug.onDidChangeActiveStackItem(event => {
-        NucleoInfo.currentPanel?.refreshInfo();
-        VMInfo.currentPanel?.refreshInfo();
+        NucleoInfo.currentPanels[PanelType.Process]?.updateInformation();
+        NucleoInfo.currentPanels[PanelType.Memory]?.updateInformation();
     });
 
     vscode.debug.onDidTerminateDebugSession(() =>{
-        NucleoInfo.currentPanel?.dispose();
-        VMInfo.currentPanel?.dispose();
+        NucleoInfo.currentPanels[PanelType.Process]?.dispose();
+        NucleoInfo.currentPanels[PanelType.Memory]?.dispose();
     });
  
 }
