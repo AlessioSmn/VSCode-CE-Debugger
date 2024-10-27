@@ -35,15 +35,13 @@ var PanelType;
 class NucleoInfo {
     // Customizable for any number of panels needed
     static currentPanels = [];
-    // Stores all the information fetched from the GDB
-    nucleoData;
-    process_list;
-    semaphore_list;
-    esecuzione;
-    pronti;
-    sospesi;
-    vm_maps;
-    vm_tree;
+    procList;
+    semList;
+    procExecId;
+    codaPronti;
+    codaSospesi;
+    vmMaps;
+    vmTree;
     _panel;
     _panelType;
     _extensionUri;
@@ -64,26 +62,22 @@ class NucleoInfo {
         switch (this._panelType) {
             case PanelType.Process:
                 // retrieve all information and parse it
-                /*
-                retrievedInfo = await this.customCommand(session, "getProcessAll");
-                this.nucleoData = JSON.parse(retrievedInfo);
-                */
-                this.process_list = await this.customCommand(session, "process list");
-                this.semaphore_list = await this.customCommand(session, "semaphore");
-                this.esecuzione = await this.customCommand(session, "esecuzione");
-                this.pronti = await this.customCommand(session, "pronti");
-                this.sospesi = await this.customCommand(session, "sospesi");
+                retrievedInfo = await this.customCommand(session, "ProcessAll");
+                let processInfoJson = JSON.parse(retrievedInfo);
+                this.codaPronti = processInfoJson.pronti;
+                this.codaSospesi = processInfoJson.sospesi;
+                this.semList = processInfoJson.semaphore;
+                this.procList = processInfoJson.processes;
+                this.procExecId = processInfoJson.exec;
                 // Format all information into an HTML page
                 infoPanel.html = this.formatHTMLprocessInfo();
                 break;
             case PanelType.Memory:
                 // retrieve all information and parse it
-                /*
-                retrievedInfo = await this.customCommand(session, "getMemoryAll");
-                this.nucleoData = JSON.parse(retrievedInfo);
-                */
-                this.vm_maps = await this.customCommand(session, "vm maps");
-                this.vm_tree = await this.customCommand(session, "vm tree");
+                retrievedInfo = await this.customCommand(session, "MemoryAll");
+                let memoryInfoJson = JSON.parse(retrievedInfo);
+                this.vmMaps = memoryInfoJson.maps;
+                this.vmTree = memoryInfoJson.tree;
                 // Format all information into an HTML page
                 infoPanel.html = this.formatHTMLMemoryInfo();
                 break;
@@ -101,7 +95,7 @@ class NucleoInfo {
         switch (panelType) {
             case PanelType.Process:
                 viewType = "processInfo";
-                panelTitle = "Process";
+                panelTitle = "Processi";
                 break;
             case PanelType.Memory:
                 viewType = "vmInfo";
@@ -129,26 +123,22 @@ class NucleoInfo {
         }
     }
     formatEsecuzione() {
-        let esecuzioneJson = JSON.parse(this.esecuzione);
-        if (esecuzioneJson.pointer == 0)
+        if (isNaN(this.procExecId))
             return `<div><h2>Esecuzione <span class="info title">empty</span></h2></div>`;
-        let exec_dump = esecuzioneJson.exec_dump;
-        let exec_pid = esecuzioneJson.pid;
+        let procExec = this.procList.find(proc => proc.pid == this.procExecId);
         let source = `
-
 		<div>
-			<h2>Esecuzione <span class="info title">id: ${exec_pid}</span></h2>
+			<h2>Esecuzione <span class="info title">id: ${procExec.pid}</span></h2>
 			<p class="toggle">Informazioni sul processo</p>
-			{{#each exec_dump}}
 			<ul class="p-dump toggable">
-				<li class="p-item"><span class="key"> pid = </span> <span class="value">{{pid}}</span></li>			
-				<li class="p-item"><span class="key"> livello = </span> <span class="value">{{livello}}</span></li>			
-				<li class="p-item"><span class="key"> corpo = </span> <span class="value">{{corpo}}</span></li>			
-				<li class="p-item"><span class="key"> rip = </span> <span class="value">{{rip}}</span></li>
+				<li class="p-item"><span class="key"> pid = </span> <span class="value">{{procExec.pid}}</span></li>			
+				<li class="p-item"><span class="key"> livello = </span> <span class="value">{{procExec.livello}}</span></li>			
+				<li class="p-item"><span class="key"> corpo = </span> <span class="value">{{procExec.corpo}}</span></li>			
+				<li class="p-item"><span class="key"> rip = </span> <span class="value">{{procExec.rip}}</span></li>
 				<li class="p-ca-dump-list">
 					<div class="toggle"><span class="key">campi aggiuntivi</span><span class="info">: array[]</span></div> 
 					<ul class="toggable">
-						{{#each campi_aggiuntivi}}
+						{{#each procExec.campi_aggiuntivi}}
 						<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
 						{{/each}}
 					</ul>
@@ -156,7 +146,7 @@ class NucleoInfo {
 				<li class="p-dump-list "> 
 					<div class="toggle"><span class="key">dump Pila</span><span class="info">: array[]</span></div> 
 					<ul class="toggable">
-						{{#each pila_dmp}}
+						{{#each procExec.pila_dmp}}
 						<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
 						{{/each}}
 					</ul>
@@ -164,22 +154,20 @@ class NucleoInfo {
 				<li class="p-dump-list"> 
 					<div class="toggle"><span class="key">dump registri</span><span class="info">: array[]</span></div> 
 					<ul class="toggable">
-						{{#each reg_dmp}}
+						{{#each procExec.reg_dmp}}
 						<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
 						{{/each}}
 					</ul>
 				</li>
 			</ul>
-			{{/each}}
 		</div>
 		`;
         let template = Handlebars.compile(source);
-        return template({ exec_dump: exec_dump });
+        return template({ procExec: procExec });
     }
     formatCodaPronti() {
-        let prontiJson = JSON.parse(this.pronti);
-        let pronti_count = prontiJson.process_list.length;
-        let pronti_list = prontiJson.process_list;
+        let pronti_count = this.codaPronti.length;
+        let pronti_list = this.codaPronti;
         if (pronti_count == 0)
             return `<div><h2>Coda pronti <span class="info title">empty</span></h2></div>`;
         let source = `
@@ -200,9 +188,8 @@ class NucleoInfo {
         return template({ pronti_list: pronti_list });
     }
     formatCodaSospesi() {
-        let sospesiJson = JSON.parse(this.sospesi);
-        let sospesi_count = sospesiJson.request_list.length;
-        let sospesi_list = sospesiJson.request_list;
+        let sospesi_count = this.codaSospesi.length;
+        let sospesi_list = this.codaSospesi;
         if (sospesi_count == 0)
             return `<div><h2>Processi sospesi <span class="info title">empty</span></h2></div>`;
         let source = `
@@ -222,12 +209,11 @@ class NucleoInfo {
         return template({ sospesi_list: sospesi_list });
     }
     formatSemaphoreList() {
-        let semaphoreListJson = JSON.parse(this.semaphore_list);
-        let sem_count = semaphoreListJson.sem_list.length;
+        let sem_count = this.semList.length;
         let sem_active_list = [];
         let sem_inact_utn_list = [];
         let sem_inact_sys_list = [];
-        semaphoreListJson.sem_list.forEach(element => {
+        this.semList.forEach(element => {
             if (element.sem_info.counter < 0)
                 sem_active_list.push(element);
             else {
@@ -309,11 +295,10 @@ class NucleoInfo {
         });
     }
     formatProcessList() {
-        let processListJson = JSON.parse(this.process_list);
-        let proc_count = processListJson.process.length;
+        let proc_count = this.procList.length;
         let proc_sys = [];
         let proc_utn = [];
-        processListJson.process.forEach(element => {
+        this.procList.forEach(element => {
             if (element.livello == "sistema")
                 proc_sys.push(element);
             else
@@ -408,10 +393,8 @@ class NucleoInfo {
         return template({ proc_sys: proc_sys, proc_utn: proc_utn, });
     }
     formatVmMaps() {
-        let vmMapsJson = JSON.parse(this.vm_maps);
-        let memPartsCount = vmMapsJson.mem_maps.length;
         let mem_part = [];
-        vmMapsJson.mem_maps.forEach(element => { mem_part.push(element); });
+        this.vmMaps.forEach(element => { mem_part.push(element); });
         let source = `
 			<div>
 				<h2>Zone di memoria</h2>
@@ -422,8 +405,8 @@ class NucleoInfo {
 						<div>
 						{{#each info}}
 							<p>
-								<span class="vm_maps {{access_type}}">
-								{{address}} {{addr_octal}} {{access_control_bits}}
+								<span class="vm_maps {{t}}">
+								{{a}} {{o}} {{x}}
 								</span>
 							</p>
 						{{/each}}
@@ -437,16 +420,14 @@ class NucleoInfo {
         return template({ mem_part: mem_part });
     }
     getVmTreeJsonParsed() {
-        let vmTreeJson = JSON.parse(this.vm_tree);
-        return vmTreeJson.vm_tree;
+        return this.vmTree.vm_tree;
+    }
+    getMaxLivJsonParsed() {
+        return this.vmTree.depth_level;
     }
     formatVmTree() {
-        let vmTreeJson = JSON.parse(this.vm_tree);
-        let vmLevels = parseInt(vmTreeJson.depth_level);
         let vmTreeFirstLevel = [];
-        vmTreeJson.vm_tree.forEach(element => {
-            vmTreeFirstLevel.push(element);
-        });
+        this.vmTree.vm_tree.forEach(element => { vmTreeFirstLevel.push(element); });
         let source = `
 			<div>
 				<h2>VM Mapping Tree</h2>
@@ -454,7 +435,7 @@ class NucleoInfo {
 				{{#each vmTreeFirstLevel}}
 					<div data-index-1="{{@index}}" data-opened="0">
 						<p onclick="showSubList(this)">
-							{{info.octal}} - {{info.address}} - {{info.access}}
+							{{i.o}} - {{i.a}} - {{i.x}}
 						</p>
 					</div>
 				{{/each}}
@@ -508,6 +489,7 @@ class NucleoInfo {
 					{{{VMtree}}}
 					{{{VMmaps}}}
 					<script>
+						const MAX_LIV = ${JSON.stringify(this.getMaxLivJsonParsed())};
 						var vmTreeStringified = ${JSON.stringify(this.getVmTreeJsonParsed())};
 					</script>
 					<script src="${scriptUri}"></script>

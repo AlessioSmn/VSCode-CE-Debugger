@@ -465,3 +465,20 @@ class Sospesi(gdb.Command):
         gdb.write(json.dumps(out) + "\n")
 
 Sospesi()
+
+
+class ProcessAll(gdb.Command):
+
+    def __init__(self):
+        super(ProcessAll, self).__init__("processAll", gdb.COMMAND_DATA)
+
+    def invoke(self, arg, from_tty):
+        out = {}
+        out['esecuzione'] = "exec_data"
+        out['pronti'] = "pronti_data"
+        out['sospesi'] = "sospesi_data"
+        out['semaphore'] = "sem_data"
+        out['process'] = "list_data"
+        gdb.write(json.dumps(out) + "\n")
+
+ProcessAll()

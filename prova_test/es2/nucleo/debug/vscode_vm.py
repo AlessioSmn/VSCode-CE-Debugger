@@ -305,6 +305,16 @@ class VmMaps(gdb.Command):
         out['mem_maps'] = MEM_MAPS
         gdb.write(json.dumps(out) + '\n')
 
+def VmTreeOutput():
+    global MEM_TREE
+    MEM_TREE = []
+    out = {}
+    out['depth_level'] = max_liv
+    f = toi(gdb.parse_and_eval('$cr3'))
+    vm_decode(f, max_liv, MEM_TREE)
+    out['vm_tree'] = MEM_TREE
+    return out
+
 class VmTree(gdb.Command):
     """
     Show the translation tree of a virtual address space
@@ -356,4 +366,3 @@ class VmTree(gdb.Command):
 Vm()
 VmMaps()
 VmTree()
-
