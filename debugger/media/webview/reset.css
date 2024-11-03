@@ -11,7 +11,6 @@ html {
 }
 
 body,
-h4,
 h5,
 h6,
 p,
@@ -24,13 +23,19 @@ ul {
 
 h2{
 	margin: 0;
-	padding: 10px 40px; /* top|bottom - left|right */
+	padding: 10px 50px; /* top|bottom - left|right */
 	font-weight: normal;
 }
 h3{
 	margin: 0;
-	padding: 10px 20px; /* top|bottom - left|right */
+	padding: 10px 25px; /* top|bottom - left|right */
 	font-weight: normal;
+}
+h4{
+	margin: 0;
+	padding: 5px 10px; /* top|bottom - left|right */
+	font-weight: normal;
+	font-style: italic;
 }
 
 li{
