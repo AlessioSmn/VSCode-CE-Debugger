@@ -191,7 +191,7 @@ def dump_corpo(proc):
 
 #region Process functions
 
-def process_dump(pid, proc, indent=0, verbosity=3):
+def process_dump(pid, proc):
     proc_dmp = {}
     proc_dmp['pid'] = pid
     proc_dmp['livello'] ="utente" if proc['livello'] == gdb.Value(3) else "sistema"
@@ -217,7 +217,6 @@ def process_dump(pid, proc, indent=0, verbosity=3):
     cr3 = toi(proc['cr3'])
     proc_dmp['cr3'] = vm_paddr_to_str(cr3)
 
-    # proc_dmp['nex_ist'] = show_lines(gdb.find_pc_line(rip), indent)
     if len(toshow) > 0:
         campi_aggiuntivi = {}
         for f in toshow:
@@ -285,9 +284,9 @@ def show_list_custom_cast(list_name, field, next_elem, cast_function):
 
 
 def EsecuzioneOutput():
-    exec_pointer = int(gdb.parse_and_eval("esecuzione"))
-    if exec_pointer == 0:
-        return "null"
+    exec_pointer = gdb.parse_and_eval('esecuzione')
+    if exec_pointer == gdb.Value(0):
+        return 'empty'
 
     exec_pid = int(gdb.parse_and_eval('esecuzione->id'))
     return exec_pid
@@ -303,7 +302,7 @@ def ProntiOutput():
         <last process' id>
     ]
     """
-    return show_list_custom_cast("pronti", 'id', 'puntatore', int)
+    return show_list_custom_cast('pronti', 'id', 'puntatore', int)
 
 def SospesiOutput():
     """
@@ -376,7 +375,7 @@ def SemaphoreOutput():
 def ProcessListOutput():
     arr = []
     for pid, proc in process_list():
-        arr.append(process_dump(pid, proc, indent=4, verbosity=0))
+        arr.append(process_dump(pid, proc))
     return arr
 
 class ProcessAll(gdb.Command):
