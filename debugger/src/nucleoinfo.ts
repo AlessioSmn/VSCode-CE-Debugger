@@ -136,31 +136,31 @@ export class NucleoInfo {
 			<h2>Esecuzione <span class="info title">id: ${procExec.pid}</span></h2>
 			<p class="toggle">Informazioni sul processo</p>
 			<ul class="p-dump toggable">
-				<li class="p-item"><span class="key"> pid = </span> <span class="value">{{procExec.pid}}</span></li>			
-				<li class="p-item"><span class="key"> livello = </span> <span class="value">{{procExec.livello}}</span></li>			
-				<li class="p-item"><span class="key"> corpo = </span> <span class="value">{{procExec.corpo}}</span></li>			
-				<li class="p-item"><span class="key"> rip = </span> <span class="value">{{procExec.rip}}</span></li>
+				<li class="p-item"><span> pid = </span> <span class="value">{{procExec.pid}}</span></li>			
+				<li class="p-item"><span> livello = </span> <span class="value">{{procExec.livello}}</span></li>			
+				<li class="p-item"><span> corpo = </span> <span class="value">{{procExec.corpo}}</span></li>			
+				<li class="p-item"><span> rip = </span> <span class="value">{{procExec.rip}}</span></li>
 				<li class="p-ca-dump-list">
-					<div class="toggle"><span class="key">campi aggiuntivi</span><span class="info">: array[]</span></div> 
+					<div class="toggle"><span>campi aggiuntivi</span><span class="info">: array[]</span></div> 
 					<ul class="toggable">
 						{{#each procExec.campi_aggiuntivi}}
-						<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+						<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 						{{/each}}
 					</ul>
 				</li>
 				<li class="p-dump-list "> 
-					<div class="toggle"><span class="key">dump Pila</span><span class="info">: array[]</span></div> 
+					<div class="toggle"><span>dump Pila</span><span class="info">: array[]</span></div> 
 					<ul class="toggable">
 						{{#each procExec.pila_dmp}}
-						<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+						<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 						{{/each}}
 					</ul>
 				</li>
 				<li class="p-dump-list"> 
-					<div class="toggle"><span class="key">dump registri</span><span class="info">: array[]</span></div> 
+					<div class="toggle"><span>dump registri</span><span class="info">: array[]</span></div> 
 					<ul class="toggable">
 						{{#each procExec.reg_dmp}}
-						<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+						<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 						{{/each}}
 					</ul>
 				</li>
@@ -227,88 +227,120 @@ export class NucleoInfo {
 
 	private formatSemaphoreList(){
 		let sem_count = this.semList.length;
-		let sem_active_list: any = [];
+		let sem_act_utn_list: any = [];
+		let sem_act_sys_list: any = [];
 		let sem_inact_utn_list: any = [];
 		let sem_inact_sys_list: any = [];
+		let activeSem = false;
+		let inactiveSem = false;
 
 		this.semList.forEach(element => {
-			if(element.sem_info.counter < 0) sem_active_list.push(element);
+			if(element.sem_info.counter < 0){
+				if(element.livello == "utente") sem_act_utn_list.push(element);
+				else sem_act_sys_list.push(element);
+				activeSem = true;
+			}
 			else{
 				if(element.livello == "utente") sem_inact_utn_list.push(element);
 				else sem_inact_sys_list.push(element);
+				inactiveSem = true;
 			}
 		});
 
 		let source = `
 		<div>
-			<h2>Semafori<span class="info">: ${sem_count}</span></h2>
-			<div>
-				<h3><span>Semafori occupati </span><span class="info">${sem_active_list.length}</span></h3>
+			<h2>Semafori</h2>
 
-				{{#each sem_active_list}}
-				<div>
-					<h5 class="p-title toggle">Sem <span class="key">[{{index}}]</span></h5>
-					<div class="toggable">
+			{{#if activeSem}}
+			<div>
+				<h3>
+					<span>Semafori occupati </span>
+					<span class="info">${sem_act_utn_list.length} + ${sem_act_sys_list.length} </span>
+				</h3>
+				{{#if sem_act_utn_list}}
+					<h4>
+						<span>Utente </span>
+						<span class="info">${sem_act_utn_list.length}</span>
+					</h4>
+					{{#each sem_act_utn_list}}
 						<div>
-							<p>Livello: <span>{{livello}}</span></p>
-							<p>Counter: <span>{{sem_info.counter}}</span></p>
-							{{#if sem_info.process_list.length}}
-								<p><span>Processi in coda (IDs): </span>
+							<p>
+								Sem [{{index}}]:
+								 coda: {
 								{{#each sem_info.process_list}}
 									<span class="info">{{this}}</span>
-									<span>	
-										{{#unless this}}[DUMMY]{{/unless}}
-										{{#unless @last}}, {{/unless}}
-									</span>
+									{{#unless this}}[DUMMY]{{/unless}}
+									{{#unless @last}}, {{/unless}}
 								{{/each}}
-								</p>
-							{{/if}}
+								}; counter = {{sem_info.counter}}
+							</p>
 						</div>
-					</div>
-				</div>
-				{{/each}}
-
-				<h3><span>Semafori liberi </span><span class="info">${sem_inact_sys_list.length} + ${sem_inact_utn_list.length} </span></h3>
-				<div>
-
-					<h4>
-						<span class="key">Sistema </span>
-						<span class="info">${sem_inact_sys_list.length}</span>
-					</h4>
-					{{#each sem_inact_sys_list}}
-					<div>
-						<p>
-							Sem 
-							<span class="key">[{{index}}]</span>
-							- counter: <span>{{sem_info.counter}}</span>
-						</p>
-					</div>
 					{{/each}}
-
+				{{/if}}
+				{{#if sem_act_sys_list}}
 					<h4>
-						<span class="key">Utente </span>
+						<span>Sistema </span>
+						<span class="info">${sem_act_sys_list.length}</span>
+					</h4>
+					{{#each sem_act_sys_list}}
+						<div>
+							<p>
+								Sem [{{index}}]:
+								 coda: {
+								{{#each sem_info.process_list}}
+									<span class="info">{{this}}</span>
+									{{#unless this}}[DUMMY]{{/unless}}
+									{{#unless @last}}, {{/unless}}
+								{{/each}}
+								}; counter = {{sem_info.counter}}
+							</p>
+						</div>
+					{{/each}}
+				{{/if}}
+			</div>
+			{{/if}}
+
+			{{#if inactiveSem}}
+			<div>
+				<h3>
+					<span>Semafori liberi </span>
+					<span class="info">${sem_inact_utn_list.length} + ${sem_inact_sys_list.length} </span>
+				</h3>
+
+				{{#if sem_inact_utn_list}}
+					<h4>
+						<span>Utente </span>
 						<span class="info">${sem_inact_utn_list.length}</span>
 					</h4>
 					{{#each sem_inact_utn_list}}
-					<div>
-						<p>
-							Sem 
-							<span class="key">[{{index}}]</span>
-							- counter: <span>{{sem_info.counter}}</span>
-						</p>
-					</div>
+						<p>Sem [{{index}}]: counter = {{sem_info.counter}}</p>
 					{{/each}}
+				{{/if}}
 
-				</div>
+				{{#if sem_inact_sys_list}}
+					<h4>
+						<span>Sistema </span>
+						<span class="info">${sem_inact_sys_list.length}</span>
+					</h4>
+					{{#each sem_inact_sys_list}}
+						<p>Sem [{{index}}]: counter = {{sem_info.counter}}</p>
+					{{/each}}
+				{{/if}}
+
 			</div>
+			{{/if}}
 		</div>
 		`;
 
 		let template = Handlebars.compile(source);
 		return template({
-			sem_active_list: sem_active_list,
+			sem_act_sys_list: sem_act_sys_list, 
+			sem_act_utn_list: sem_act_utn_list,
 			sem_inact_sys_list: sem_inact_sys_list, 
-			sem_inact_utn_list: sem_inact_utn_list});
+			sem_inact_utn_list: sem_inact_utn_list,
+			activeSem: activeSem,
+			inactiveSem: inactiveSem
+		});
 	}
 	
 	private formatProcessList(){
@@ -322,39 +354,39 @@ export class NucleoInfo {
 
 		let source = `
 		<div>
-			<h2>Processi creati<span class="info">: ${proc_count}</span></h2>
+			<h2>Processi creati <span class="info">${proc_count}</span></h2>
 			<div>
-				<h3 class="p-title toggle"><span class="key">Sistema </span><span class="info">${proc_sys.length}</span></h3>
+				<h3 class="p-title toggle"><span>Sistema </span><span class="info">${proc_sys.length}</span></h3>
 				<div class="toggable">
 					{{#each proc_sys}}
 						<div>
-							<h3 class="p-title toggle"><span class="key">[{{pid}}]</span><span class="info">: object</span></h3>
+							<p class="p-title toggle"><span>[{{pid}}]</span></p>
 							<ul class="p-dump toggable">
-								<li class="p-item"><span class="key"> pid = </span> <span class="value">{{pid}}</span></li>			
-								<li class="p-item"><span class="key"> livello = </span> <span class="value">{{livello}}</span></li>			
-								<li class="p-item"><span class="key"> corpo = </span> <span class="value">{{corpo}}</span></li>			
-								<li class="p-item"><span class="key"> rip = </span> <span class="value">{{rip}}</span></li>
+								<li class="p-item"><span> pid = </span> <span class="value">{{pid}}</span></li>			
+								<li class="p-item"><span> livello = </span> <span class="value">{{livello}}</span></li>			
+								<li class="p-item"><span> corpo = </span> <span class="value">{{corpo}}</span></li>			
+								<li class="p-item"><span> rip = </span> <span class="value">{{rip}}</span></li>
 								<li class="p-ca-dump-list" >
-									<div class="toggle"><span class="key">campi aggiuntivi</span><span class="info">: array[]</span></div> 
+									<div class="toggle"><span>campi aggiuntivi</span><span class="info">: array[]</span></div> 
 									<ul class="toggable">
 										{{#each campi_aggiuntivi}}
-											<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+											<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 										{{/each}}
 									</ul>
 								</li>
 								<li class="p-dump-list "> 
-									<div class="toggle"><span class="key">dump Pila</span><span class="info">: array[]</span></div> 
+									<div class="toggle"><span>dump Pila</span><span class="info">: array[]</span></div> 
 									<ul class="toggable">
 										{{#each pila_dmp}}
-											<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+											<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 										{{/each}}
 									</ul>
 								</li>
 								<li class="p-dump-list"> 
-									<div class="toggle"><span class="key">dump registri</span><span class="info">: array[]</span></div> 
+									<div class="toggle"><span>dump registri</span><span class="info">: array[]</span></div> 
 									<ul class="toggable">
 										{{#each reg_dmp}}
-											<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+											<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 										{{/each}}
 									</ul>
 								</li>
@@ -364,37 +396,37 @@ export class NucleoInfo {
 				</div>
 			</div>
 			<div>
-				<h3 class="p-title toggle"><span class="key">Utente</span><span class="info"> ${proc_utn.length}</span></h3>
+				<h3 class="p-title toggle"><span>Utente</span><span class="info"> ${proc_utn.length}</span></h3>
 				<div class="toggable">
 					{{#each proc_utn}}
 						<div>
-							<h3 class="p-title toggle"><span class="key">[{{pid}}]</span><span class="info">: object</span></h3>
+							<p class="p-title toggle"><span>[{{pid}}]</span></p>
 							<ul class="p-dump toggable">
-								<li class="p-item"><span class="key"> pid = </span> <span class="value">{{pid}}</span></li>			
-								<li class="p-item"><span class="key"> livello = </span> <span class="value">{{livello}}</span></li>			
-								<li class="p-item"><span class="key"> corpo = </span> <span class="value">{{corpo}}</span></li>			
-								<li class="p-item"><span class="key"> rip = </span> <span class="value">{{rip}}</span></li>
+								<li class="p-item"><span> pid = </span> <span class="value">{{pid}}</span></li>			
+								<li class="p-item"><span> livello = </span> <span class="value">{{livello}}</span></li>			
+								<li class="p-item"><span> corpo = </span> <span class="value">{{corpo}}</span></li>			
+								<li class="p-item"><span> rip = </span> <span class="value">{{rip}}</span></li>
 								<li class="p-ca-dump-list" >
-									<div class="toggle"><span class="key">campi aggiuntivi</span><span class="info">: array[]</span></div> 
+									<div class="toggle"><span>campi aggiuntivi</span><span class="info">: array[]</span></div> 
 									<ul class="toggable">
 										{{#each campi_aggiuntivi}}
-											<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+											<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 										{{/each}}
 									</ul>
 								</li>
 								<li class="p-dump-list "> 
-									<div class="toggle"><span class="key">dump pila</span><span class="info">: array[]</span></div> 
+									<div class="toggle"><span>dump pila</span><span class="info">: array[]</span></div> 
 									<ul class="toggable">
 										{{#each pila_dmp}}
-											<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+											<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 										{{/each}}
 									</ul>
 								</li>
 								<li class="p-dump-list"> 
-									<div class="toggle"><span class="key">dump registri</span><span class="info">: array[]</span></div> 
+									<div class="toggle"><span>dump registri</span><span class="info">: array[]</span></div> 
 									<ul class="toggable">
 										{{#each reg_dmp}}
-											<li class="p-dmp-item"> <span class="key">{{@key}} =</span> <span class="value">{{this}}</span></li>
+											<li class="p-dmp-item"> <span>{{@key}} =</span> <span class="value">{{this}}</span></li>
 										{{/each}}
 									</ul>
 								</li>
@@ -419,7 +451,7 @@ export class NucleoInfo {
 				<div>
 				{{#each mem_part}}
 					<div>
-						<h3><span class="key">{{part}}</span></h3>
+						<h3><span>{{part}}</span></h3>
 						<div>
 						{{#each info}}
 							<p>
@@ -441,6 +473,7 @@ export class NucleoInfo {
 	private getVmTreeJsonParsed(){
 		return this.vmTree.vm_tree;
 	}
+	
 	private getMaxLivJsonParsed(){
 		return this.vmTree.depth_level;
 	}
@@ -472,12 +505,12 @@ export class NucleoInfo {
 		let source = `
 			<div>
 				<h2>VM Translation Path</h2>
-				<input type="text" id="vmadd">
-				<button onclick="showTranslationPath()">Show path</button>
-				<div id="vmPath"></div>
-				<h3>Translation result</h3>
-				<div id="vmPathResult">
+				<div style="display: inline-flex; width: 100%;">
+					<input type="text" style="display:inline-block; width:50%;" id="vmadd" onkeydown="if(event.key === 'Enter') showTranslationPath();">
+					<button onclick="showTranslationPath()" style="display:inline-block; width:auto; padding: 0 20px;">Show path</button>
 				</div>
+				<div id="vmPath"></div>
+				<div id="vmPathResult"></div>
 			</div>
 		`;
 
