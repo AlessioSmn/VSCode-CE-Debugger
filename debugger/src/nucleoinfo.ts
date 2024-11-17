@@ -7,7 +7,7 @@ export enum PanelType {
     Process = 0,
     Memory = 1
 }
-
+// c1
 export class NucleoInfo {
 
 	// Customizable for any number of panels needed
