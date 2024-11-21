@@ -8,6 +8,22 @@ import termios
 import json
 from gdb.FrameDecorator import FrameDecorator
 
+#region Variables and constants
+try:
+    max_liv  = int(gdb.parse_and_eval('MAX_LIV'))
+except:
+    max_liv = 4
+
+current_part = 0
+MEM_MAPS = {}
+cs_cur = 0
+wp_cur = 0
+MEM_TREE = []
+vm_last = 0xffff
+
+flags  = { 1: 'W', 2: 'U', 3: 'w', 4: 'c', 5: 'A', 6: 'D', 7: 's' }
+nflags = { 1: 'R', 2: 'S', 3: '-', 4: '-', 5: '-', 6: '-', 7: '-' }
+
 # cache some types
 des_proc_type = gdb.lookup_type('des_proc')
 des_proc_ptr_type = gdb.Type.pointer(des_proc_type)
@@ -38,10 +54,6 @@ m_ini = [ int(gdb.parse_and_eval('$I_' + x.upper())) for x in m_parts ]
 m_names = []
 
 
-sem_utn = gdb.parse_and_eval("sem_allocati_utente")
-sem_sys = gdb.parse_and_eval("sem_allocati_sistema")
-
-
 # cache some types
 ulong_type = gdb.lookup_type('unsigned long')
 void_ptr_type = gdb.Type.pointer(gdb.lookup_type('void'))
@@ -54,6 +66,10 @@ for i, p in enumerate(m_parts):
     r, c = m_parts[i].split('_')
     m_names.append(tr[r] + "/" + ('condiviso' if c == 'c' else 'privato'))
 m_ini.append(256)
+
+#endregion
+
+#region Utility functions
 
 def resolve_function(f):
     global res_sym
@@ -78,7 +94,6 @@ def toi(v):
 def readfis(addr):
     """read an unsigned long from qemu memory"""
     return struct.unpack('Q', bytes(qemu.read_memory(addr, 8)))[0]
-
 
 registers = [ 'rax', 'rcx', 'rdx', 'rbx', 'rsp', 'rbp', 'rsi', 'rdi', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15' ]
 def show_registers():
@@ -151,7 +166,6 @@ def dump_selector(sel):
     return "[{}]".format(name)
 
 res_sym = re.compile('^(\w+)(?:\(.*\))? in section \.text(?: of .*/(.*))?$')
-# res_sym = re.compile('.*')
 
 def is_curproc(p):
     """true if p is the current process"""
@@ -170,8 +184,11 @@ def dump_corpo(proc):
         return ''
     return "{}:{}({})".format(*resolve_function(toi(c))[::-1], toi(proc['parametro']))
 
+#endregion
 
-def process_dump(pid, proc, indent=0, verbosity=3):
+#region Process functions
+
+def process_dump(pid, proc):
     proc_dmp = {}
     proc_dmp['pid'] = pid
     proc_dmp['livello'] ="utente" if proc['livello'] == gdb.Value(3) else "sistema"
@@ -197,7 +214,6 @@ def process_dump(pid, proc, indent=0, verbosity=3):
     cr3 = toi(proc['cr3'])
     proc_dmp['cr3'] = vm_paddr_to_str(cr3)
 
-    # proc_dmp['nex_ist'] = show_lines(gdb.find_pc_line(rip), indent)
     if len(toshow) > 0:
         campi_aggiuntivi = {}
         for f in toshow:
@@ -206,16 +222,12 @@ def process_dump(pid, proc, indent=0, verbosity=3):
     
     return proc_dmp
 
-def process_list(t='all'):
+def process_list():
     for pid in range(max_proc):
         p = get_process(pid)
         if p is None:
             continue
         proc = p.dereference()
-        if t == "user" and proc['livello'] != gdb.Value(3):
-            continue
-        if t == "system" and proc['livello'] == gdb.Value(3):
-            continue
         yield (pid, proc)
 
 def parse_process(a):
@@ -240,105 +252,18 @@ def parse_process(a):
             raise TypeError("expression must be a (pointer to) des_proc or a process id")
         return p
 
+def sem_list(lvl='all'):
+    if(lvl != 'sis'):
+        sem_utn = gdb.parse_and_eval("sem_allocati_utente")
+        for i in range(sem_utn):
+            s = gdb.parse_and_eval("array_dess[{}]".format(i))
+            yield (i, s)
 
-class Process(gdb.Command):
-    """info about processes"""
-
-    def __init__(self):
-        super(Process, self).__init__("process", gdb.COMMAND_DATA, prefix=True)
-
-class ProcessDump(gdb.Command):
-    """show information from the des_proc of a process.
-    The argument can be any expression returning a process id or a des_proc*.
-    If no arguments are given, 'esecuzione->id' is assumed."""
-    def __init__(self):
-        super(ProcessDump, self).__init__("process dump", gdb.COMMAND_DATA, gdb.COMPLETE_EXPRESSION)
-
-    def invoke(self, arg, from_tty):
-        p = parse_process(arg)
-        if not p:
-            raise gdb.GdbError("no such process")
-        process_dump(p)
-
-class ProcessList(gdb.Command):
-    """list existing processes
-    The command accepts an optional argument which may be 'system'
-    (show only system processes), 'user' (show only user processes)
-    or 'all' (default, show all processes)."""
-
-    def __init__(self):
-        super(ProcessList, self).__init__("process list", gdb.COMMAND_DATA)
-
-    def invoke(self, arg, from_tty):
-        out = {}
-        out['command'] = "process_list"
-        out['process'] = []
-        for pid, proc in process_list(arg):
-            out['process'].append(process_dump(pid, proc, indent=4, verbosity=0))
-        # with open('myfile.txt', 'w') as f:
-        #     f.write(json.dumps(out))
-        gdb.write(json.dumps(out) + "\n")
-        
-Process()
-ProcessDump()
-ProcessList()
-
-
-def sem_list(cond='all'):
-    sem = gdb.parse_and_eval("sem_allocati_utente")
-    for i in range(sem):
-        s = gdb.parse_and_eval("array_dess[{}]".format(i))
-        if cond == 'waiting' and s['pointer'] == gdb.Value(0):
-            continue
-        yield (i, s)
-    sem = gdb.parse_and_eval("sem_allocati_sistema")
-    for i in range(sem):
-        s = gdb.parse_and_eval("array_dess[{}]".format(i + max_sem))
-        if cond == 'waiting' and s['pointer'] == gdb.Value(0):
-            continue
-        yield (i + max_sem, s)
-
-class Semaphore(gdb.Command):
-    """
-    Returns a JSON string containing infomation on semaphores,
-    structured as:
-    {
-        "command": "semaphore"
-        "sem_list": [
-            {
-                "index": <semaphore index>
-                "livello": <utente | sistema>
-                "sem_info": {
-                    "counter": {semaphore counter}
-                    "process_list": [ <pid1>, <pid2>, ..., <pidN> ]
-                }
-            }
-        ]
-    }
-    """
-
-    def __init__(self):
-        super(Semaphore, self).__init__("semaphore", gdb.COMMAND_DATA)
-
-    def invoke(self, arg, from_tty):
-        out = {}
-        out['command'] = "semaphore"
-        out['sem_list'] = []
-
-        # for each semaphore
-        for i, s in sem_list(arg):
-            sem = {}
-            sem['index'] = i
-            sem['livello'] = 'utente' if i < sem_utn else 'sistema'
-            sem['sem_info'] = {}
-            sem['sem_info']['counter'] = int(gdb.parse_and_eval("array_dess[{}].counter".format(i)))
-            sem['sem_info']['process_list'] = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
-            out['sem_list'].append(sem)
-        
-        gdb.write(json.dumps(out) + "\n")
-
-Semaphore()
-
+    if(lvl != 'utn'):
+        sem_sis = gdb.parse_and_eval("sem_allocati_sistema")
+        for i in range(sem_sis):
+            s = gdb.parse_and_eval("array_dess[{}]".format(i + max_sem))
+            yield (i + max_sem, s)
 
 def show_list_custom_cast(list_name, field, next_elem, cast_function):
     proc_info_list = []
@@ -357,128 +282,464 @@ def show_list_custom_cast(list_name, field, next_elem, cast_function):
 
     return proc_info_list
 
-class Pronti(gdb.Command):
+
+def EsecuzioneOutput():
+    exec_pointer = gdb.parse_and_eval('esecuzione')
+    if exec_pointer == gdb.Value(0):
+        return 'empty'
+
+    exec_pid = int(gdb.parse_and_eval('esecuzione->id'))
+    return exec_pid
+
+def ProntiOutput():
     """
-    Returns a JSON string containing infomation on 'pronti' list,
+    Returns a JSON array containing infomation on 'pronti' list,
+    structured as:
+    [
+        <first process' id>,
+        <second process' id>,
+        ...,
+        <last process' id>
+    ]
+    """
+    return show_list_custom_cast('pronti', 'id', 'puntatore', int)
+
+def SospesiOutput():
+    """
+    Returns a JSON array containing infomation on 'sospesi' list,
+    structured as:
+    [
+        {
+            "attesa_relativa": <relative wait time (to preceding process)>,
+            "attesa_totale": <total wait time>,
+            "process": <process' id>
+        },
+        ...
+    ]
+    """
+    request_list = []
+    request = gdb.parse_and_eval("sospesi")
+    attesa_tot = 0
+
+    while request != gdb.Value(0):
+
+        # access the request struct
+        request = request.dereference()
+
+        # retrieve request data
+        request_data = {}
+        attesa = int(request['d_attesa'])
+        request_data["attesa_relativa"] = attesa
+        attesa_tot = attesa_tot + attesa
+        request_data["attesa_totale"] = attesa_tot
+
+        request_data["process"] = int(request['pp'].dereference()['id'])
+        
+        # add the request data to the list
+        request_list.append(request_data)
+        
+        # fetch the next request
+        request = request['p_rich']
+
+    return request_list
+
+def SemaphoreOutput():
+    """
+    Returns a JSON array containing infomation on semaphores,
     structured as:
     {
-        "command": "pronti"
-        "process_list": [
-            <first process' id>,
-            <second process' id>,
-            ...,
-            <last process' id>
-        ]
+        "utente": [
+                {
+                    "index": <semaphore index>
+                    "sem_info": {
+                        "counter": {semaphore counter}
+                        "process_list": [ <pid1>, <pid2>, ..., <pidN> ]
+                    }
+                }
+                ...
+            ],
+        "sistema": [
+                {
+                    "index": <semaphore index>
+                    "sem_info": {
+                        "counter": {semaphore counter}
+                        "process_list": [ <pid1>, <pid2>, ..., <pidN> ]
+                    }
+                }
+                ...
+            ]
     }
     """
+    
+    sem_sis = []
+    sem_utn = []
 
-    def __init__(self):
-        super(Pronti, self).__init__("pronti", gdb.COMMAND_DATA)
+    # User semaphore
+    for i, s in sem_list('utn'):
+        sem = {}
+        sem['index'] = i
+        sem['sem_info'] = {}
+        sem['sem_info']['counter'] = int(s['counter'])
+        sem['sem_info']['process_list'] = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
+        sem_utn.append(sem)
 
-    def invoke(self, arg, from_tty):
-        out = {}
-        out['command'] = "pronti"
-        out['process_list'] = show_list_custom_cast("pronti", 'id', 'puntatore', int)
-        gdb.write(json.dumps(out) + "\n")
-
-Pronti()
-
-
-class Esecuzione(gdb.Command):
-
-    def __init__(self):
-        super(Esecuzione, self).__init__("esecuzione", gdb.COMMAND_DATA)
-
-    def invoke(self, arg, from_tty):
-        out = {}
-        out['command'] = "esecuzione"
-
-        exec_pointer = int(gdb.parse_and_eval("esecuzione"))
-        out["pointer"] = exec_pointer
-
-        # if esecuzione == null returns, cannot access any fields
-        if exec_pointer == 0:
-            gdb.write(json.dumps(out) + "\n")
-            return
-
-        exec_pid = int(gdb.parse_and_eval('esecuzione->id'))
-        out["pid"] = exec_pid
-
-        out['exec_dump'] = []
-        out['exec_dump'].append(process_dump(exec_pid, get_process(exec_pid), indent=4, verbosity=0))
-
-        gdb.write(json.dumps(out) + "\n")
-
-Esecuzione()
-
-
-class Sospesi(gdb.Command):
-    """
-    Returns a JSON string containing infomation on 'sospesi' list,
-    structured as:
-    {
-        "command": "sospesi"
-        "request_list": [
-            {
-                "attesa_relativa": <relative wait time (to preceding process)>,
-                "attesa_totale": <total wait time>,
-                "process": <process' id>
-            },
-            ...
-        ]
+    # System semaphore
+    for i, s in sem_list('sis'):
+        sem = {}
+        sem['index'] = i
+        sem['sem_info'] = {}
+        sem['sem_info']['counter'] = int(s['counter'])
+        sem['sem_info']['process_list'] = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
+        sem_sis.append(sem)
+    
+    arr = {
+        'utente': sem_utn,
+        'sistema': sem_sis
     }
-    """
 
-    def __init__(self):
-        super(Sospesi, self).__init__("sospesi", gdb.COMMAND_DATA)
+    return arr
 
-    def invoke(self, arg, from_tty):
-        out = {}
-        out['command'] = "sospesi"
-
-        request_list = []
-        request = gdb.parse_and_eval("sospesi")
-        attesa_tot = 0
-
-        while request != gdb.Value(0):
-
-            # access the request struct
-            request = request.dereference()
-
-            # retrieve request data
-            request_data = {}
-            attesa = int(request['d_attesa'])
-            request_data["attesa_relativa"] = attesa
-            attesa_tot = attesa_tot + attesa
-            request_data["attesa_totale"] = attesa_tot
-
-            request_data["process"] = int(request['pp'].dereference()['id'])
-            
-            # add the request data to the list
-            request_list.append(request_data)
-            
-            # fetch the next request
-            request = request['p_rich']
-
-        out['request_list'] = request_list
-
-        gdb.write(json.dumps(out) + "\n")
-
-Sospesi()
-
+def ProcessListOutput():
+    arr = []
+    for pid, proc in process_list():
+        arr.append(process_dump(pid, proc))
+    return arr
 
 class ProcessAll(gdb.Command):
 
     def __init__(self):
-        super(ProcessAll, self).__init__("processAll", gdb.COMMAND_DATA)
+        super(ProcessAll, self).__init__("ProcessAll", gdb.COMMAND_DATA)
 
     def invoke(self, arg, from_tty):
         out = {}
-        out['esecuzione'] = "exec_data"
-        out['pronti'] = "pronti_data"
-        out['sospesi'] = "sospesi_data"
-        out['semaphore'] = "sem_data"
-        out['process'] = "list_data"
+        out['exec'] = EsecuzioneOutput()
+        out['pronti'] = ProntiOutput()
+        out['sospesi'] = SospesiOutput()
+        out['semaphore'] = SemaphoreOutput()
+        out['processes'] = ProcessListOutput()
         gdb.write(json.dumps(out) + "\n")
 
 ProcessAll()
+
+#endregion
+
+#region Memory functions
+
+def vm_access_byte_to_str(a):
+    if not a & 1:
+        return "unmapped"
+    fl = []
+    if a & (1 << 2):
+        fl.append("U")
+    else:
+        fl.append("S")
+    if a & (1 << 8):
+        fl.append("G")
+    if a & (1 << 1):
+        fl.append("W")
+    else:
+        fl.append("R")
+    if a & (1 << 3):
+        fl.append("PWT")
+    if a & (1 << 4):
+        fl.append("PCD")
+    if a & (1 << 7):
+        fl.append("PS")
+    if a & (1 << 5):
+        fl.append("A")
+    if a & (1 << 6):
+        fl.append("D")
+    return " ".join(fl)
+
+def vm_dump_map(v, a):
+    '''
+    Prints info on virtual address
+    Parameters:
+        v:      virtual address, composed as array of tab entries
+        a:      access bits
+    '''
+
+    global MEM_MAPS # stores all data to be printed
+    global current_part
+
+    # make sure to always display 12 oct address (so #max_liv table/frame indexes, usually 4 elements)
+    vv = v[:]
+    while len(vv) < max_liv:
+        vv.append(0)
+
+    # virtual address mapping path
+    vs = []
+
+    # check if address is Utente (last half) or Sistema (first half)
+    if vv[0] >= 0x100:
+        addr = 0xffff
+        vs.append("U")
+    else:
+        addr = 0
+        vs.append("S")
+
+    # compose the pyhsical address
+    # nb: sys mem is mapped at the bottom, so we add 0xffff at the beginning of the address
+    for i in range(max_liv):
+        addr = (addr << 9) | vv[i]
+        vs.append("{:03o}".format(vv[i]))
+
+    # final shift to account for frame dimension
+    addr <<= 12
+
+    # access type
+    col = "R W"
+    if not a & 1:
+        col = ""
+    elif cs_cur and not a & (1 << 2):
+        col = ""
+    elif (cs_cur or wp_cur) and not a & (1 << 1):
+        col = "R"
+
+    # format address as (a string of) 16 hexadecimal numbers
+    addr = ("{:016x}".format(addr))
+    
+    # append info to global array
+    add_info = {}
+    add_info['a'] = addr
+    add_info['x'] = vm_access_byte_to_str(a)
+    add_info['o'] = "-".join(vs)
+    add_info['t'] = col
+    MEM_MAPS[current_part]['info'].append(add_info)
+
+def vm_show_maps_rec(tab, liv, virt, cur):
+    '''
+        tab:    table address
+        liv:    table level
+        virt:   array of previous tab entries (composing the path)
+        cur:    current access control bits (to check for U/S and R/W rights among the entire path)
+    '''
+    global vm_last, m_ini, max_liv, current_part
+
+    global MEM_MAPS
+    # counter to keep track of memory area (listed in m_names)
+    cur_reg = 0
+
+    # loop over all page entries
+    for i in range(512):
+
+        # if we are at root table (max_liv)
+        # m_ini stores the (intial) address of each memory part 
+        if liv == max_liv and cur_reg < len(m_ini) and i == m_ini[cur_reg]:
+            # inizialize new dictionary for memory part
+            MEM_MAPS[cur_reg] = {}
+            MEM_MAPS[cur_reg]['part'] = m_names[cur_reg]
+            MEM_MAPS[cur_reg]['info'] = []
+            current_part = cur_reg
+            cur_reg += 1
+        
+        # get i-th tab entry
+        e = readfis(tab + i * 8)
+
+        # get access control bits (12 LSBs)
+        a = e & 0xfff
+
+        # if not top level (levels 4, 3, 2) and PS bit = 0
+        if liv > 1 and not a & (1 << 7):
+            # reset A and D bits
+            a &= ~(1 << 5)  # A
+            a &= ~(1 << 6)  # D
+
+        # R/W
+        # if current access bits have R/W bit = 0 (if Read only)
+        if not cur & (1 << 1):
+            # reset R/W bit in a
+            a &= ~(1 << 1)
+
+        # U/S
+        # if current access bits have U/S bit = 0 (if U)
+        if not cur & (1 << 2): 
+            # reset U/S bit in a
+            a &= ~(1 << 2)
+        
+        # append current tab entry to the list
+        virt.append(i)
+        
+        # if entry is mapped (P = 1), not top level and not frame address -> entry is table address
+        if a & 1 and liv > 1 and not a & (1 << 7):
+            # get table address
+            f = e & ~0xfff
+            # recursive call
+            vm_show_maps_rec(f, liv - 1, virt, a)
+        
+        # otherwise (entry is frame address),
+        # if access bits are different from last printed space
+        elif a != vm_last:
+            # print info of virtual address space
+            vm_dump_map(virt, a)
+            # update access bit information on the last printed space
+            vm_last = a
+        
+        # empty the virt array (recursive call, only empty current element)
+        virt.pop()
+
+def vm_show_maps(cr3):
+    global vm_last, cs_cur, wp_cur
+    global MEM_MAPS, m_ini, current_part
+    # get context
+    cs_cur = toi(gdb.parse_and_eval('$cs')) & 0x3
+    wp_cur = toi(gdb.parse_and_eval('$cr0')) & (1 << 16)
+    vm_last = 0xffff
+
+    current_part = 0
+
+    # len - 1 to account for mio_p not present
+    MEM_MAPS = [None] * (len(m_ini) - 1)
+
+    # recursive call
+    vm_show_maps_rec(cr3, max_liv, [], 0x7)
+
+def vm_decode(f, liv, vm_list, stop=max_liv, rngs=[range(512)]*max_liv):
+    # Slightly modified from original code:
+    #   - previous argument <indent> is removed (no formatting needed)
+    #   - previous argument <nonpresent> is always false
+
+    if liv > 0 and stop > 0:
+
+        # swipe all tab entries
+        for i in rngs[liv - 1]:
+
+            # get tab entry
+            tab_entry = readfis(f + i * 8)
+
+            # if entry is paged
+            if tab_entry & 1:
+
+                # get next table / frame address (zero all access bits)
+                f1 = tab_entry & ~0xFFF
+
+                # Get string info on all flags
+                fl = []
+                for j in flags:
+                    fl.append(flags[j] if tab_entry & (1 << j) else nflags[j])
+
+                # write tab entry index in octal representation
+                tab_entry_index_octal = ("{:03o}".format(i))
+
+                # construct a string with all access info
+                tab_entry_access_bits = "".join(fl)
+
+                # tab address
+                tab_address = vm_paddr_to_str(f1)
+                
+                # append entry and info
+                tab = {}
+                tab_entry_data = {}
+                # o - octal
+                tab_entry_data['o'] = tab_entry_index_octal
+                # x - access
+                tab_entry_data['x'] = tab_entry_access_bits
+                # a - address
+                tab_entry_data['a'] = tab_address
+                # i - info
+                tab['i'] = tab_entry_data
+                # s - sub list
+                tab['s'] = []
+                
+                # if not frame descriptor at > max_liv, show path for entire tab and append it to the entry
+                if not tab_entry & (1<<7):
+                    sub_list = []
+                    vm_decode(f1, liv - 1, sub_list, stop - 1, rngs)
+
+                    if sub_list:
+                        tab['s'].append(sub_list)
+                
+                vm_list.append(tab)
+
+def VmMapsOutput():
+    """
+    Show the mappings of an address space.
+
+    The output is formatted as a JSON array, structured as:
+    [
+        {
+            "part": <memory part 1 name>
+            "info": {
+                [
+                    "a": <virtual space address (initial address)>
+                    "x": <access control bits>
+                    "o": <octal address mapping>
+                    "t": <access type (r / w)>
+                ],
+                [
+                    "a": <virtual space address (initial address)>
+                    "x": <access control bits>
+                    "o": <octal address mapping>
+                    "t": <access type (r / w)>
+                ]
+            }
+        },
+        ...,
+    ]
+    """
+    global MEM_MAPS
+    vm_show_maps(toi(gdb.parse_and_eval('$cr3')))
+    return MEM_MAPS
+
+def VmTreeOutput():
+    """
+    Show the translation tree of a virtual address space
+
+    The output is formatted as a JSON object, structured as:
+    {
+        "depth_level": <table levels>
+        "vm_tree": [
+            {
+                "i": {
+                    "o": <octal address mapping>
+                    "x": <access control bits>
+                    "a": <virtual space address (initial address)>
+                }
+                "s": [
+                    {{same estructure as parent node}}
+                ]
+            },
+            ...,
+        ]
+    }
+    """
+    global MEM_TREE
+    MEM_TREE = []
+    out = {}
+    out['depth_level'] = max_liv
+    f = toi(gdb.parse_and_eval('$cr3'))
+    vm_decode(f, max_liv, MEM_TREE)
+    out['vm_tree'] = MEM_TREE
+    return out
+
+
+class MemoryAll(gdb.Command):
+
+    def __init__(self):
+        super(MemoryAll, self).__init__("MemoryAll", gdb.COMMAND_DATA)
+
+    def invoke(self, arg, from_tty):
+        out = {}
+        out['maps'] = VmMapsOutput()
+        out['tree'] = VmTreeOutput()
+        gdb.write(json.dumps(out) + "\n")
+
+MemoryAll()
+
+
+"""
+{
+    "maps": [
+        {"part": "sistema/condiviso", "info": [{"address": "0000000000000000", "access_control_bits": "unmapped", "addr_octal": "S-000-000-000-000", "access_type": ""}, {"address": "0000000000001000", "access_control_bits": "S W A D", "addr_octal": "S-000-000-000-001", "access_type": "R W"}, {"address": "0000000000002000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-002", "access_type": "R W"}, {"address": "00000000000a0000", "access_control_bits": "S W PWT", "addr_octal": "S-000-000-000-240", "access_type": "R W"}, {"address": "00000000000c0000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-300", "access_type": "R W"}, {"address": "0000000000100000", "access_control_bits": "S W A", "addr_octal": "S-000-000-000-400", "access_type": "R W"}, {"address": "0000000000101000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-401", "access_type": "R W"}, {"address": "000000000010e000", "access_control_bits": "S W A", "addr_octal": "S-000-000-000-416", "access_type": "R W"}, {"address": "000000000010f000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-417", "access_type": "R W"}, {"address": "0000000000111000", "access_control_bits": "S W A D", "addr_octal": "S-000-000-000-421", "access_type": "R W"}, {"address": "0000000000112000", "access_control_bits": "S W A", "addr_octal": "S-000-000-000-422", "access_type": "R W"}, {"address": "0000000000113000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-423", "access_type": "R W"}, {"address": "0000000000200000", "access_control_bits": "S W PS", "addr_octal": "S-000-000-001-000", "access_type": "R W"}, {"address": "0000000002000000", "access_control_bits": "S W PWT PCD PS", "addr_octal": "S-000-000-020-000", "access_type": "R W"}, {"address": "0000000100000000", "access_control_bits": "unmapped", "addr_octal": "S-000-004-000-000", "access_type": ""}]}, 
+        {"part": "sistema/privato", "info": []}, 
+        {"part": "IO/condiviso", "info": []}, 
+        {"part": "utente/condiviso", "info": []}, 
+        {"part": "utente/privato", "info": []}, 
+        null
+    ], 
+    "tree": {
+        "depth_level": 4, 
+        "vm_tree": [
+        {"info": {"octal": "000", "access": "WS--A--", "address": "0x00004000"}, "sub_list": [[{"info": {"octal": "000", "access": "WS--A--", "address": "0x00006000"}, "sub_list": [[{"info": {"octal": "000", "access": "WS--A--", "address": "0x00008000"}, "sub_list": [[{"info": {"octal": "001", "access": "WS--AD-", "address": "0x00001000"}, "sub_list": []}, {"info": {"octal": "002", "access": "WS-----", "address": "0x00002000"}, "sub_list": []}, {"info": {"octal": "003", "access": "WS-----", "address": "0x00003000"}, "sub_list": []}, {"info": {"octal": "004", "access": "WS-----", "address": "0x00004000"}, "sub_list": []}, {"info": {"octal": "005", "access": "WS-----", "address": "0x00005000"}, "sub_list": []}, {"info": {"octal": "006", "access": "WS-----", "address": "0x00006000"}, "sub_list": []}, {"info": {"octal": "007", "access": "WS-----", "address": "0x00007000"}, "sub_list": []}, {"info": {"octal": "010", "access": "WS-----", "address": "0x00008000"}, "sub_list": []}, {"info": {"octal": "011", "access": "WS-----", "address": "0x00009000"}, "sub_list": []}, 
+"""
+#endregion
