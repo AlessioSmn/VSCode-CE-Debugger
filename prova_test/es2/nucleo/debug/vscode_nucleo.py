@@ -283,7 +283,7 @@ def show_list_custom_cast(list_name, field, next_elem, cast_function):
     return proc_info_list
 
 
-def EsecuzioneOutput():
+def Esecuzione():
     exec_pointer = gdb.parse_and_eval('esecuzione')
     if exec_pointer == gdb.Value(0):
         return 'empty'
@@ -291,7 +291,7 @@ def EsecuzioneOutput():
     exec_pid = int(gdb.parse_and_eval('esecuzione->id'))
     return exec_pid
 
-def ProntiOutput():
+def Pronti():
     """
     Returns a JSON array containing infomation on 'pronti' list,
     structured as:
@@ -304,7 +304,7 @@ def ProntiOutput():
     """
     return show_list_custom_cast('pronti', 'id', 'puntatore', int)
 
-def SospesiOutput():
+def Sospesi():
     """
     Returns a JSON array containing infomation on 'sospesi' list,
     structured as:
@@ -343,7 +343,7 @@ def SospesiOutput():
 
     return request_list
 
-def SemaphoreOutput():
+def Semaphore():
     """
     Returns a JSON array containing infomation on semaphores,
     structured as:
@@ -399,7 +399,7 @@ def SemaphoreOutput():
 
     return arr
 
-def ProcessListOutput():
+def Processes():
     arr = []
     for pid, proc in process_list():
         arr.append(process_dump(pid, proc))
@@ -412,11 +412,11 @@ class ProcessAll(gdb.Command):
 
     def invoke(self, arg, from_tty):
         out = {}
-        out['exec'] = EsecuzioneOutput()
-        out['pronti'] = ProntiOutput()
-        out['sospesi'] = SospesiOutput()
-        out['semaphore'] = SemaphoreOutput()
-        out['processes'] = ProcessListOutput()
+        out['exec'] = Esecuzione()
+        out['pronti'] = Pronti()
+        out['sospesi'] = Sospesi()
+        out['semaphore'] = Semaphore()
+        out['processes'] = Processes()
         gdb.write(json.dumps(out) + "\n")
 
 ProcessAll()
@@ -651,7 +651,7 @@ def vm_decode(f, liv, vm_list, stop=max_liv, rngs=[range(512)]*max_liv):
                 
                 vm_list.append(tab)
 
-def VmMapsOutput():
+def VmMaps():
     """
     Show the mappings of an address space.
 
@@ -681,7 +681,7 @@ def VmMapsOutput():
     vm_show_maps(toi(gdb.parse_and_eval('$cr3')))
     return MEM_MAPS
 
-def VmTreeOutput():
+def VmTree():
     """
     Show the translation tree of a virtual address space
 
@@ -720,8 +720,8 @@ class MemoryAll(gdb.Command):
 
     def invoke(self, arg, from_tty):
         out = {}
-        out['maps'] = VmMapsOutput()
-        out['tree'] = VmTreeOutput()
+        out['maps'] = VmMaps()
+        out['tree'] = VmTree()
         gdb.write(json.dumps(out) + "\n")
 
 MemoryAll()
