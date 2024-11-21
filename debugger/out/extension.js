@@ -49,4 +49,5 @@ function activate(context) {
 }
 // This method is called when your extension is deactivated
 function deactivate() { }
+// test 2
 //# sourceMappingURL=extension.js.map

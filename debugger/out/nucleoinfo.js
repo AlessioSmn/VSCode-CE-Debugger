@@ -32,6 +32,7 @@ var PanelType;
     PanelType[PanelType["Process"] = 0] = "Process";
     PanelType[PanelType["Memory"] = 1] = "Memory";
 })(PanelType || (exports.PanelType = PanelType = {}));
+// c1
 class NucleoInfo {
     // Customizable for any number of panels needed
     static currentPanels = [];
@@ -209,29 +210,24 @@ class NucleoInfo {
         return template({ sospesi_list: sospesi_list });
     }
     formatSemaphoreList() {
-        let sem_count = this.semList.length;
         let sem_act_utn_list = [];
         let sem_act_sys_list = [];
         let sem_inact_utn_list = [];
         let sem_inact_sys_list = [];
-        let activeSem = false;
-        let inactiveSem = false;
-        this.semList.forEach(element => {
-            if (element.sem_info.counter < 0) {
-                if (element.livello == "utente")
-                    sem_act_utn_list.push(element);
-                else
-                    sem_act_sys_list.push(element);
-                activeSem = true;
-            }
-            else {
-                if (element.livello == "utente")
-                    sem_inact_utn_list.push(element);
-                else
-                    sem_inact_sys_list.push(element);
-                inactiveSem = true;
-            }
+        this.semList.utente.forEach(element => {
+            if (element.sem_info.counter < 0)
+                sem_act_utn_list.push(element);
+            else
+                sem_inact_utn_list.push(element);
         });
+        this.semList.sistema.forEach(element => {
+            if (element.sem_info.counter < 0)
+                sem_act_sys_list.push(element);
+            else
+                sem_inact_sys_list.push(element);
+        });
+        let activeSem = sem_act_utn_list.length > 0 || sem_act_sys_list.length > 0;
+        let inactiveSem = sem_inact_utn_list.length > 0 || sem_inact_sys_list.length > 0;
         let source = `
 		<div>
 			<h2>Semafori</h2>

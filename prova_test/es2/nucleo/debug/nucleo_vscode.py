@@ -53,9 +53,6 @@ m_parts = [ 'sis_c', 'sis_p', 'mio_c', 'utn_c', 'utn_p' ]
 m_ini = [ int(gdb.parse_and_eval('$I_' + x.upper())) for x in m_parts ]
 m_names = []
 
-sem_utn = gdb.parse_and_eval("sem_allocati_utente")
-sem_sys = gdb.parse_and_eval("sem_allocati_sistema")
-
 
 # cache some types
 ulong_type = gdb.lookup_type('unsigned long')
@@ -255,15 +252,18 @@ def parse_process(a):
             raise TypeError("expression must be a (pointer to) des_proc or a process id")
         return p
 
-def sem_list():
-    sem = gdb.parse_and_eval("sem_allocati_utente")
-    for i in range(sem):
-        s = gdb.parse_and_eval("array_dess[{}]".format(i))
-        yield (i, s)
-    sem = gdb.parse_and_eval("sem_allocati_sistema")
-    for i in range(sem):
-        s = gdb.parse_and_eval("array_dess[{}]".format(i + max_sem))
-        yield (i + max_sem, s)
+def sem_list(lvl='all'):
+    if(lvl != 'sis'):
+        sem_utn = gdb.parse_and_eval("sem_allocati_utente")
+        for i in range(sem_utn):
+            s = gdb.parse_and_eval("array_dess[{}]".format(i))
+            yield (i, s)
+
+    if(lvl != 'utn'):
+        sem_sis = gdb.parse_and_eval("sem_allocati_sistema")
+        for i in range(sem_sis):
+            s = gdb.parse_and_eval("array_dess[{}]".format(i + max_sem))
+            yield (i + max_sem, s)
 
 def show_list_custom_cast(list_name, field, next_elem, cast_function):
     proc_info_list = []
@@ -347,29 +347,56 @@ def SemaphoreOutput():
     """
     Returns a JSON array containing infomation on semaphores,
     structured as:
-    [
-        {
-            "index": <semaphore index>
-            "livello": <utente | sistema>
-            "sem_info": {
-                "counter": {semaphore counter}
-                "process_list": [ <pid1>, <pid2>, ..., <pidN> ]
-            }
-        }
-    ]
+    {
+        "utente": [
+                {
+                    "index": <semaphore index>
+                    "sem_info": {
+                        "counter": {semaphore counter}
+                        "process_list": [ <pid1>, <pid2>, ..., <pidN> ]
+                    }
+                }
+                ...
+            ],
+        "sistema": [
+                {
+                    "index": <semaphore index>
+                    "sem_info": {
+                        "counter": {semaphore counter}
+                        "process_list": [ <pid1>, <pid2>, ..., <pidN> ]
+                    }
+                }
+                ...
+            ]
+    }
     """
-    arr = []
+    
+    sem_sis = []
+    sem_utn = []
 
-    # for each semaphore
-    for i, s in sem_list():
+    # User semaphore
+    for i, s in sem_list('utn'):
         sem = {}
         sem['index'] = i
-        sem['livello'] = 'utente' if i < sem_utn else 'sistema'
         sem['sem_info'] = {}
-        sem['sem_info']['counter'] = int(gdb.parse_and_eval("array_dess[{}].counter".format(i)))
+        sem['sem_info']['counter'] = int(s['counter'])
         sem['sem_info']['process_list'] = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
-        arr.append(sem)
+        sem_utn.append(sem)
+
+    # System semaphore
+    for i, s in sem_list('sis'):
+        sem = {}
+        sem['index'] = i
+        sem['sem_info'] = {}
+        sem['sem_info']['counter'] = int(s['counter'])
+        sem['sem_info']['process_list'] = show_list_custom_cast("array_dess[{}].pointer".format(i), 'id', 'puntatore', int)
+        sem_sis.append(sem)
     
+    arr = {
+        'utente': sem_utn,
+        'sistema': sem_sis
+    }
+
     return arr
 
 def ProcessListOutput():
