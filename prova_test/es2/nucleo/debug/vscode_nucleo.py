@@ -723,20 +723,4 @@ class MemoryAll(gdb.Command):
 
 MemoryAll()
 
-
-"""
-{
-    "maps": [
-        {"part": "sistema/condiviso", "info": [{"address": "0000000000000000", "access_control_bits": "unmapped", "addr_octal": "S-000-000-000-000", "access_type": ""}, {"address": "0000000000001000", "access_control_bits": "S W A D", "addr_octal": "S-000-000-000-001", "access_type": "R W"}, {"address": "0000000000002000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-002", "access_type": "R W"}, {"address": "00000000000a0000", "access_control_bits": "S W PWT", "addr_octal": "S-000-000-000-240", "access_type": "R W"}, {"address": "00000000000c0000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-300", "access_type": "R W"}, {"address": "0000000000100000", "access_control_bits": "S W A", "addr_octal": "S-000-000-000-400", "access_type": "R W"}, {"address": "0000000000101000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-401", "access_type": "R W"}, {"address": "000000000010e000", "access_control_bits": "S W A", "addr_octal": "S-000-000-000-416", "access_type": "R W"}, {"address": "000000000010f000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-417", "access_type": "R W"}, {"address": "0000000000111000", "access_control_bits": "S W A D", "addr_octal": "S-000-000-000-421", "access_type": "R W"}, {"address": "0000000000112000", "access_control_bits": "S W A", "addr_octal": "S-000-000-000-422", "access_type": "R W"}, {"address": "0000000000113000", "access_control_bits": "S W", "addr_octal": "S-000-000-000-423", "access_type": "R W"}, {"address": "0000000000200000", "access_control_bits": "S W PS", "addr_octal": "S-000-000-001-000", "access_type": "R W"}, {"address": "0000000002000000", "access_control_bits": "S W PWT PCD PS", "addr_octal": "S-000-000-020-000", "access_type": "R W"}, {"address": "0000000100000000", "access_control_bits": "unmapped", "addr_octal": "S-000-004-000-000", "access_type": ""}]}, 
-        {"part": "sistema/privato", "info": []}, 
-        {"part": "IO/condiviso", "info": []}, 
-        {"part": "utente/condiviso", "info": []}, 
-        {"part": "utente/privato", "info": []}, 
-        null
-    ], 
-    "tree": {
-        "depth_level": 4, 
-        "vm_tree": [
-        {"info": {"octal": "000", "access": "WS--A--", "address": "0x00004000"}, "sub_list": [[{"info": {"octal": "000", "access": "WS--A--", "address": "0x00006000"}, "sub_list": [[{"info": {"octal": "000", "access": "WS--A--", "address": "0x00008000"}, "sub_list": [[{"info": {"octal": "001", "access": "WS--AD-", "address": "0x00001000"}, "sub_list": []}, {"info": {"octal": "002", "access": "WS-----", "address": "0x00002000"}, "sub_list": []}, {"info": {"octal": "003", "access": "WS-----", "address": "0x00003000"}, "sub_list": []}, {"info": {"octal": "004", "access": "WS-----", "address": "0x00004000"}, "sub_list": []}, {"info": {"octal": "005", "access": "WS-----", "address": "0x00005000"}, "sub_list": []}, {"info": {"octal": "006", "access": "WS-----", "address": "0x00006000"}, "sub_list": []}, {"info": {"octal": "007", "access": "WS-----", "address": "0x00007000"}, "sub_list": []}, {"info": {"octal": "010", "access": "WS-----", "address": "0x00008000"}, "sub_list": []}, {"info": {"octal": "011", "access": "WS-----", "address": "0x00009000"}, "sub_list": []}, 
-"""
 #endregion
