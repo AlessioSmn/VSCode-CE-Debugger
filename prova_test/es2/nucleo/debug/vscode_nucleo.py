@@ -578,22 +578,6 @@ def vm_show_maps_rec(tab, liv, virt, cur):
         # empty the virt array (recursive call, only empty current element)
         virt.pop()
 
-def vm_show_maps(cr3):
-    global vm_last, cs_cur, wp_cur
-    global MEM_MAPS, m_ini, current_part
-    # get context
-    cs_cur = toi(gdb.parse_and_eval('$cs')) & 0x3
-    wp_cur = toi(gdb.parse_and_eval('$cr0')) & (1 << 16)
-    vm_last = 0xffff
-
-    current_part = 0
-
-    # len - 1 to account for mio_p not present
-    MEM_MAPS = [None] * (len(m_ini) - 1)
-
-    # recursive call
-    vm_show_maps_rec(cr3, max_liv, [], 0x7)
-
 def vm_decode(f, liv, vm_list, stop=max_liv, rngs=[range(512)]*max_liv):
     # Slightly modified from original code:
     #   - previous argument <indent> is removed (no formatting needed)
@@ -677,8 +661,21 @@ def VmMaps():
         ...,
     ]
     """
-    global MEM_MAPS
-    vm_show_maps(toi(gdb.parse_and_eval('$cr3')))
+    global vm_last, cs_cur, wp_cur, m_ini, current_part, MEM_MAPS
+
+    # get context
+    cs_cur = toi(gdb.parse_and_eval('$cs')) & 0x3
+    wp_cur = toi(gdb.parse_and_eval('$cr0')) & (1 << 16)
+
+    # initialize global variables
+    vm_last = 0xffff
+    current_part = 0
+    MEM_MAPS = [None] * (len(m_ini) - 1) # len - 1 to account for mio_p not present
+
+    # recursive call
+    cr3 = toi(gdb.parse_and_eval('$cr3'))
+    vm_show_maps_rec(cr3, max_liv, [], 0x7)
+    
     return MEM_MAPS
 
 def VmTree():
