@@ -126,7 +126,8 @@ export function formatSemaphoreList(this: any): string{
 		<div>
 			<h3>
 				<span>Semafori occupati </span>
-				<span class="info">${sem_act_utn_list.length} + ${sem_act_sys_list.length} </span>
+				<span class="info">${sem_act_utn_list.length}</span> | 
+				<span class="info"> ${sem_act_sys_list.length}</span>
 			</h3>
 			{{#if sem_act_utn_list}}
 				<h4>
@@ -169,13 +170,15 @@ export function formatSemaphoreList(this: any): string{
 				{{/each}}
 			{{/if}}
 		</div>
+		<br>
 		{{/if}}
 
 		{{#if inactiveSem}}
 		<div>
 			<h3>
 				<span>Semafori liberi </span>
-				<span class="info">${sem_inact_utn_list.length} + ${sem_inact_sys_list.length} </span>
+				<span class="info">${sem_inact_utn_list.length}</span> | 
+				<span class="info">${sem_inact_sys_list.length}</span>
 			</h3>
 
 			{{#if sem_inact_utn_list}}
@@ -267,7 +270,7 @@ export function formatProcesses(this: any): string{
 			</div>
 		</div>
 		<div>
-			<h3 class="p-title toggle"><span>Utente</span><span class="info"> ${proc_utn.length}</span></h3>
+			<h3 class="p-title toggle"><span>Utente </span><span class="info">${proc_utn.length}</span></h3>
 			<div class="toggable">
 				{{#each proc_utn}}
 					<div>
