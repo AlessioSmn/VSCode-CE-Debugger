@@ -12,7 +12,7 @@ function formatVmMaps() {
     this.vmMaps.forEach(element => { mem_part.push(element); });
     let source = `
 		<div>
-			<h2>Zone di memoria</h2>
+			<h2>Zone di memoria - vm maps</h2>
 			<div>
 			{{#each mem_part}}
 				<div>
@@ -39,7 +39,7 @@ function formatVmTree() {
     this.vmTree.vm_tree.forEach(element => { vmTreeFirstLevel.push(element); });
     let source = `
 		<div>
-			<h2>VM Mapping Tree</h2>
+			<h2>Albero di traduzione - vm tree</h2>
 			<div class="vm_tree_root">
 			{{#each vmTreeFirstLevel}}
 				<div data-index-1="{{@index}}" data-opened="0">
@@ -57,10 +57,17 @@ function formatVmTree() {
 function vmPathAnalyzer() {
     let source = `
 		<div>
-			<h2>VM Translation Path</h2>
+			<h2>Traduzione di un indirizzo virtuale</h2>
+			<div style="font-size:x-small; font-style:italic;">
+				<p>Note:</p>
+				<ul>
+					<li>Utilizza l'albero di traduzione del processo in esecuzione</li>
+					<li>Richiede un indirizzo espresso in cifre esadecimali</li>
+				</ul>
+			</div>
 			<div style="display: inline-flex; width: 100%;">
 				<input type="text" style="display:inline-block; width:50%;" id="vmadd" onkeydown="if(event.key === 'Enter') showTranslationPath();">
-				<button onclick="showTranslationPath()" style="display:inline-block; width:auto; padding: 0 20px;">Show path</button>
+				<button onclick="showTranslationPath()" style="display:inline-block; width:auto; padding: 0 20px;">Traduci</button>
 			</div>
 			<div id="vmPath"></div>
 			<div id="vmPathResult"></div>
