@@ -20,6 +20,7 @@ cs_cur = 0
 wp_cur = 0
 MEM_TREE = []
 vm_last = 0xffff
+past_tables = set()
 
 flags  = { 1: 'W', 2: 'U', 3: 'w', 4: 'c', 5: 'A', 6: 'D', 7: 's' }
 nflags = { 1: 'R', 2: 'S', 3: '-', 4: '-', 5: '-', 6: '-', 7: '-' }
@@ -268,8 +269,16 @@ def sem_list(lvl='all'):
 def show_list_custom_cast(list_name, field, next_elem, cast_function):
     proc_info_list = []
     proc = gdb.parse_and_eval(list_name)
+    past_proc = set()
 
     while proc != gdb.Value(0):
+
+        # Check that list is not recursive
+        if int(proc.address) in past_proc:
+            break
+
+        # add element to list of visited elements    
+        past_proc.add(int(proc.address))
 
         # access the process struct
         proc = proc.dereference()
@@ -320,8 +329,16 @@ def Sospesi():
     request_list = []
     request = gdb.parse_and_eval("sospesi")
     attesa_tot = 0
+    past_request = set()
 
     while request != gdb.Value(0):
+
+        # check that list is not recursive
+        if int(request.address) in past_request:
+            break
+
+        # add the element to visited elements
+        past_request.add(int(request.address))
 
         # access the request struct
         request = request.dereference()
@@ -514,9 +531,15 @@ def vm_show_maps_rec(tab, liv, virt, cur):
         virt:   array of previous tab entries (composing the path)
         cur:    current access control bits (to check for U/S and R/W rights among the entire path)
     '''
-    global vm_last, m_ini, max_liv, current_part
+    global vm_last, m_ini, max_liv, current_part, MEM_MAPS, past_tables
 
-    global MEM_MAPS
+    # check that mempry tree is not recursive
+    if tab in past_tables:
+        return
+
+    past_tables.add(tab)
+
+
     # counter to keep track of memory area (listed in m_names)
     cur_reg = 0
 
@@ -582,6 +605,14 @@ def vm_decode(f, liv, vm_list, stop=max_liv, rngs=[range(512)]*max_liv):
     # Slightly modified from original code:
     #   - previous argument <indent> is removed (no formatting needed)
     #   - previous argument <nonpresent> is always false
+
+    global past_tables
+
+    # check that memory tree is not recursive
+    if f in past_tables:
+        return
+        
+    past_tables.add(f)
 
     if liv > 0 and stop > 0:
 
@@ -661,7 +692,7 @@ def VmMaps():
         ...,
     ]
     """
-    global vm_last, cs_cur, wp_cur, m_ini, current_part, MEM_MAPS
+    global vm_last, cs_cur, wp_cur, m_ini, current_part, MEM_MAPS, past_tables
 
     # get context
     cs_cur = toi(gdb.parse_and_eval('$cs')) & 0x3
@@ -671,6 +702,7 @@ def VmMaps():
     vm_last = 0xffff
     current_part = 0
     MEM_MAPS = [None] * (len(m_ini) - 1) # len - 1 to account for mio_p not present
+    past_tables = set()
 
     # recursive call
     cr3 = toi(gdb.parse_and_eval('$cr3'))
@@ -700,8 +732,9 @@ def VmTree():
         ]
     }
     """
-    global MEM_TREE
+    global MEM_TREE, past_tables
     MEM_TREE = []
+    past_tables = set()
     out = {}
     out['depth_level'] = max_liv
     f = toi(gdb.parse_and_eval('$cr3'))
