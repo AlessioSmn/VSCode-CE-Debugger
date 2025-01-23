@@ -50,7 +50,7 @@ export class NucleoInfo {
 
 	public async updateInformation (){
 		const infoPanel = this._panel.webview;
-		infoPanel.html = this._getLoadingPage();
+		infoPanel.html = this.generateLoadingPage();
 		let retrievedInfo;
 
 		// Get active debug session
@@ -138,7 +138,7 @@ export class NucleoInfo {
 		}     
     }
 
-    private _getLoadingPage() {
+    private generateLoadingPage() {
 		let sourceDocument = `
 			<!DOCTYPE html>
 			<html>

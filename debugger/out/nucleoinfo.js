@@ -65,7 +65,7 @@ class NucleoInfo {
     }
     async updateInformation() {
         const infoPanel = this._panel.webview;
-        infoPanel.html = this._getLoadingPage();
+        infoPanel.html = this.generateLoadingPage();
         let retrievedInfo;
         // Get active debug session
         const session = vscode.debug.activeDebugSession;
@@ -132,7 +132,7 @@ class NucleoInfo {
             return result;
         }
     }
-    _getLoadingPage() {
+    generateLoadingPage() {
         let sourceDocument = `
 			<!DOCTYPE html>
 			<html>
