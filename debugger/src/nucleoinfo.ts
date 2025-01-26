@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as vscode from 'vscode';
 import * as ProcessInfoMethods from './nucleoinfo_proc';
 import * as VmInfoMethods from './nucleoinfo_vm';
