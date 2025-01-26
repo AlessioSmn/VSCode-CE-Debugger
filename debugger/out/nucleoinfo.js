@@ -24,6 +24,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NucleoInfo = exports.PanelType = void 0;
+// @ts-nocheck
 const vscode = __importStar(require("vscode"));
 const ProcessInfoMethods = __importStar(require("./nucleoinfo_proc"));
 const VmInfoMethods = __importStar(require("./nucleoinfo_vm"));

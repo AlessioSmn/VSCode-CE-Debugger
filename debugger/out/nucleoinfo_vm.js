@@ -73,7 +73,6 @@ function vmPathAnalyzer() {
 			<div id="vmPathResult"></div>
 		</div>
 	`;
-    let template = handlebars_1.default.compile(source);
-    return template();
+    return source;
 }
 //# sourceMappingURL=nucleoinfo_vm.js.map
