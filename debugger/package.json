@@ -3,7 +3,7 @@
   "displayName": "Nucleo Debugger",
   "description": "Estensione per il debug del nucleo multiprogrammato",
   "icon": "media/unipi-logo-png-3.png",
-  "version": "1.0.0a",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.91.0"
   },
