@@ -71,6 +71,5 @@ export function vmPathAnalyzer(this: any): string{
 		</div>
 	`;
 
-	let template = Handlebars.compile(source);
-	return template();
+	return source;
 }
