@@ -2,3 +2,6 @@
 /node_modules
 /nucleo-7.1.2
 debugger/nucleo-debugger-0.0.1.vsix
+prova_test/*
+!prova_test/*/
+prova_test/es2/nucleo/build*
