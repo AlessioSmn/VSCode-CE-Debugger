@@ -40,7 +40,7 @@ const sourceEsecuzione = `
 	`;
 const sourceCodaPronti = `
 	<div>
-		<h2>Coda pronti <span class="info title">{{count}} process{{#unless count}}o{{else}}i{{/unless}}</span></h2>
+		<h2>Coda pronti <span class="info title">{{count}} process{{#unless single}}i{{else}}o{{/unless}}</span></h2>
 		<div><p>
 		{{#each pronti_list}}
 			<span class="info">{{this}}</span>
@@ -54,7 +54,7 @@ const sourceCodaPronti = `
 `;
 const sourceCodaSospesi = `
 	<div>
-		<h2>Processi sospesi <span class="info title">{{count}} process{{#unless count}}o{{else}}i{{/unless}}</span></h2>
+		<h2>Processi sospesi <span class="info title">{{count}} process{{#unless single}}i{{else}}o{{/unless}}</span></h2>
 		<div><ul>
 			{{#each sospesi_list}}
 			<li>
@@ -272,7 +272,8 @@ export function formatCodaPronti(this: any): string {
 
     return templateCodaPronti({
 		pronti_list: pronti_list,
-		count: pronti_list.length-1
+		single: pronti_list.length === 1,
+		count: pronti_list.length,
 	});
 }
 
@@ -284,6 +285,7 @@ export function formatCodaSospesi(this: any): string{
 
 	return templateCodaSospesi({
 		sospesi_list: sospesi_list,
+		single: sospesi_list.length === 1,
 		count: sospesi_list.length
 	});
 }
