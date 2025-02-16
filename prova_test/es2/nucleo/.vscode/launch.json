@@ -18,6 +18,30 @@
                     "ignoreFailures": true
                 },
             ],
+        },
+        {
+            "name": "Compila il nucleo",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "Compila il nucleo",
+            "program": "/bin/true",
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Compila e Esegui (Compile - Boot)",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "Compila ed esegui",
+            "program": "/bin/true",
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Boot (diretto)",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "Esegui il nucleo",
+            "program": "/bin/true",
+            "cwd": "${workspaceFolder}",
         }
     ]
 }
