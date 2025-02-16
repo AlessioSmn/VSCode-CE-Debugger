@@ -3,9 +3,9 @@
   "displayName": "Nucleo Debugger",
   "description": "Estensione per il debug del nucleo multiprogrammato",
   "icon": "media/unipi-logo-png-3.png",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.91.0"
   },
   "publisher": "UniPi - Giuseppe Lettieri",
   "author": {
