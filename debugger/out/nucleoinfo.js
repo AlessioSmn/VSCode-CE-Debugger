@@ -36,7 +36,6 @@ var PanelType;
     PanelType[PanelType["Memory"] = 1] = "Memory";
 })(PanelType || (exports.PanelType = PanelType = {}));
 class NucleoInfo {
-    // Customizable for any number of panels needed
     static currentPanels = [];
     procList;
     semList;
@@ -53,14 +52,18 @@ class NucleoInfo {
         this._panel = panel;
         this._extensionUri = extensionUri;
         this._panelType = panelType;
-        this.formatEsecuzione = ProcessInfoMethods.formatEsecuzione.bind(this);
-        this.formatCodaPronti = ProcessInfoMethods.formatCodaPronti.bind(this);
-        this.formatCodaSospesi = ProcessInfoMethods.formatCodaSospesi.bind(this);
-        this.formatSemaphoreList = ProcessInfoMethods.formatSemaphoreList.bind(this);
-        this.formatProcesses = ProcessInfoMethods.formatProcesses.bind(this);
-        this.formatVmMaps = VmInfoMethods.formatVmMaps.bind(this);
-        this.formatVmTree = VmInfoMethods.formatVmTree.bind(this);
-        this.vmPathAnalyzer = VmInfoMethods.vmPathAnalyzer.bind(this);
+        if (panelType == PanelType.Process) {
+            this.formatEsecuzione = ProcessInfoMethods.formatEsecuzione.bind(this);
+            this.formatCodaPronti = ProcessInfoMethods.formatCodaPronti.bind(this);
+            this.formatCodaSospesi = ProcessInfoMethods.formatCodaSospesi.bind(this);
+            this.formatSemaphoreList = ProcessInfoMethods.formatSemaphoreList.bind(this);
+            this.formatProcesses = ProcessInfoMethods.formatProcesses.bind(this);
+        }
+        if (panelType == PanelType.Memory) {
+            this.formatVmMaps = VmInfoMethods.formatVmMaps.bind(this);
+            this.formatVmTree = VmInfoMethods.formatVmTree.bind(this);
+            this.vmPathAnalyzer = VmInfoMethods.vmPathAnalyzer.bind(this);
+        }
         // Listen for when the panel is disposed: this happens when the user closes the panel
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
     }
