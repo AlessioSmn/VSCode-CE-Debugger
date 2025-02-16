@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.compileProcessTemplates = compileProcessTemplates;
 exports.formatEsecuzione = formatEsecuzione;
 exports.formatCodaPronti = formatCodaPronti;
 exports.formatCodaSospesi = formatCodaSospesi;
@@ -10,6 +11,7 @@ exports.formatSemaphoreList = formatSemaphoreList;
 exports.formatProcesses = formatProcesses;
 //@ts-nocheck
 const handlebars_1 = __importDefault(require("handlebars"));
+// HTML presets
 const sourceEsecuzione = `
 	<div>
 		<h2>Esecuzione <span class="info title">id: {{procExec.pid}}</span></h2>
@@ -46,42 +48,20 @@ const sourceEsecuzione = `
 		</ul>
 	</div>
 	`;
-let templateEsecuzione;
-function formatEsecuzione() {
-    if (isNaN(this.procExecId))
-        return `<div><h2>Esecuzione <span class="info title">empty</span></h2></div>`;
-    let processInExecution = this.procList.find(proc => proc.pid == this.procExecId);
-    if (!templateEsecuzione)
-        templateEsecuzione = handlebars_1.default.compile(sourceEsecuzione);
-    return templateEsecuzione({ procExec: processInExecution });
-}
 const sourceCodaPronti = `
-        <div>
-            <h2>Coda pronti <span class="info title">{{count}} process{{#unless count}}o{{else}}i{{/unless}}</span></h2>
-            <div><p>
-            {{#each pronti_list}}
-                <span class="info">{{this}}</span>
-                <span>	
-                    {{#unless this}}[DUMMY]{{/unless}}
-                    {{#unless @last}} &#8594; {{/unless}}
-                </span>
-            {{/each}}
-            </p></div>
-        </div>
-    `;
-let templateCodaPronti;
-function formatCodaPronti() {
-    let pronti_list = this.codaPronti;
-    if (pronti_list.length === 0) {
-        return `<div><h2>Coda pronti <span class="info title">empty</span></h2></div>`;
-    }
-    if (!templateCodaPronti)
-        templateCodaPronti = handlebars_1.default.compile(sourceCodaPronti);
-    return templateCodaPronti({
-        pronti_list: pronti_list,
-        count: pronti_list.length - 1
-    });
-}
+	<div>
+		<h2>Coda pronti <span class="info title">{{count}} process{{#unless count}}o{{else}}i{{/unless}}</span></h2>
+		<div><p>
+		{{#each pronti_list}}
+			<span class="info">{{this}}</span>
+			<span>	
+				{{#unless this}}[DUMMY]{{/unless}}
+				{{#unless @last}} &#8594; {{/unless}}
+			</span>
+		{{/each}}
+		</p></div>
+	</div>
+`;
 const sourceCodaSospesi = `
 	<div>
 		<h2>Processi sospesi <span class="info title">{{count}} process{{#unless count}}o{{else}}i{{/unless}}</span></h2>
@@ -95,18 +75,6 @@ const sourceCodaSospesi = `
 		</ul></div>
 	</div>
 	`;
-let templateCodaSospesi;
-function formatCodaSospesi() {
-    let sospesi_list = this.codaSospesi;
-    if (sospesi_list.length == 0)
-        return `<div><h2>Processi sospesi <span class="info title">empty</span></h2></div>`;
-    if (!templateCodaSospesi)
-        templateCodaSospesi = handlebars_1.default.compile(sourceCodaSospesi);
-    return templateCodaSospesi({
-        sospesi_list: sospesi_list,
-        count: sospesi_list.length
-    });
-}
 const sourceSemaphoreList = `
 	<div>
 		<h2>Semafori</h2>
@@ -194,40 +162,6 @@ const sourceSemaphoreList = `
 		{{/if}}
 	</div>
 	`;
-let templateSemaphoreList;
-function formatSemaphoreList() {
-    let sem_act_utn_list = [];
-    let sem_act_sys_list = [];
-    let sem_inact_utn_list = [];
-    let sem_inact_sys_list = [];
-    this.semList.utente.forEach(element => {
-        if (element.sem_info.counter < 0)
-            sem_act_utn_list.push(element);
-        else
-            sem_inact_utn_list.push(element);
-    });
-    this.semList.sistema.forEach(element => {
-        if (element.sem_info.counter < 0)
-            sem_act_sys_list.push(element);
-        else
-            sem_inact_sys_list.push(element);
-    });
-    let activeSem = sem_act_utn_list.length > 0 || sem_act_sys_list.length > 0;
-    let inactiveSem = sem_inact_utn_list.length > 0 || sem_inact_sys_list.length > 0;
-    if (!activeSem && !inactiveSem) {
-        return `<div><h2>Semafori <span class="info title">empty</span></h2></div>`;
-    }
-    if (!templateSemaphoreList)
-        templateSemaphoreList = handlebars_1.default.compile(sourceSemaphoreList);
-    return templateSemaphoreList({
-        sem_act_sys_list: sem_act_sys_list,
-        sem_act_utn_list: sem_act_utn_list,
-        sem_inact_sys_list: sem_inact_sys_list,
-        sem_inact_utn_list: sem_inact_utn_list,
-        activeSem: activeSem,
-        inactiveSem: inactiveSem
-    });
-}
 const sourceProcesses = `
 	<div>
 		<h2>Processi creati <span class="info">{{proc_count}}</span></h2>
@@ -313,7 +247,76 @@ const sourceProcesses = `
 		</div>
 	</div>
 	`;
+// Handlebars templates
+let templateEsecuzione;
+let templateCodaPronti;
+let templateCodaSospesi;
+let templateSemaphoreList;
 let templateProcesses;
+// Compiles the templates once at the start of the extension
+function compileProcessTemplates() {
+    templateEsecuzione = handlebars_1.default.compile(sourceEsecuzione);
+    templateCodaPronti = handlebars_1.default.compile(sourceCodaPronti);
+    templateCodaSospesi = handlebars_1.default.compile(sourceCodaSospesi);
+    templateSemaphoreList = handlebars_1.default.compile(sourceSemaphoreList);
+    templateProcesses = handlebars_1.default.compile(sourceProcesses);
+}
+function formatEsecuzione() {
+    if (isNaN(this.procExecId))
+        return `<div><h2>Esecuzione <span class="info title">empty</span></h2></div>`;
+    let processInExecution = this.procList.find(proc => proc.pid == this.procExecId);
+    return templateEsecuzione({ procExec: processInExecution });
+}
+function formatCodaPronti() {
+    let pronti_list = this.codaPronti;
+    if (pronti_list.length === 0) {
+        return `<div><h2>Coda pronti <span class="info title">empty</span></h2></div>`;
+    }
+    return templateCodaPronti({
+        pronti_list: pronti_list,
+        count: pronti_list.length - 1
+    });
+}
+function formatCodaSospesi() {
+    let sospesi_list = this.codaSospesi;
+    if (sospesi_list.length == 0)
+        return `<div><h2>Processi sospesi <span class="info title">empty</span></h2></div>`;
+    return templateCodaSospesi({
+        sospesi_list: sospesi_list,
+        count: sospesi_list.length
+    });
+}
+function formatSemaphoreList() {
+    let sem_act_utn_list = [];
+    let sem_act_sys_list = [];
+    let sem_inact_utn_list = [];
+    let sem_inact_sys_list = [];
+    this.semList.utente.forEach(element => {
+        if (element.sem_info.counter < 0)
+            sem_act_utn_list.push(element);
+        else
+            sem_inact_utn_list.push(element);
+    });
+    this.semList.sistema.forEach(element => {
+        if (element.sem_info.counter < 0)
+            sem_act_sys_list.push(element);
+        else
+            sem_inact_sys_list.push(element);
+    });
+    let activeSem = sem_act_utn_list.length > 0 || sem_act_sys_list.length > 0;
+    let inactiveSem = sem_inact_utn_list.length > 0 || sem_inact_sys_list.length > 0;
+    if (!activeSem && !inactiveSem) {
+        return `<div><h2>Semafori <span class="info title">empty</span></h2></div>`;
+    }
+    return templateSemaphoreList({
+        sem_act_sys_list: sem_act_sys_list,
+        sem_act_utn_list: sem_act_utn_list,
+        sem_inact_sys_list: sem_inact_sys_list,
+        sem_inact_utn_list: sem_inact_utn_list,
+        activeSem: activeSem,
+        inactiveSem: inactiveSem
+    });
+}
 function formatProcesses() {
     let proc_count = this.procList.length;
     let proc_sys = [];
@@ -324,8 +327,6 @@ function formatProcesses() {
         else
             proc_utn.push(element);
     });
-    if (!templateProcesses)
-        templateProcesses = handlebars_1.default.compile(sourceProcesses);
     return templateProcesses({
         proc_sys: proc_sys,
         proc_utn: proc_utn,
