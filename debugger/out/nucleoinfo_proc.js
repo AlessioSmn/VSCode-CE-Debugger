@@ -8,14 +8,11 @@ exports.formatCodaPronti = formatCodaPronti;
 exports.formatCodaSospesi = formatCodaSospesi;
 exports.formatSemaphoreList = formatSemaphoreList;
 exports.formatProcesses = formatProcesses;
+//@ts-nocheck
 const handlebars_1 = __importDefault(require("handlebars"));
-function formatEsecuzione() {
-    if (isNaN(this.procExecId))
-        return `<div><h2>Esecuzione <span class="info title">empty</span></h2></div>`;
-    let procExec = this.procList.find(proc => proc.pid == this.procExecId);
-    let source = `
+const sourceEsecuzione = `
 	<div>
-		<h2>Esecuzione <span class="info title">id: ${procExec.pid}</span></h2>
+		<h2>Esecuzione <span class="info title">id: {{procExec.pid}}</span></h2>
 		<p class="toggle">Informazioni sul processo</p>
 		<ul class="p-dump toggable">
 			<li class="p-item"><span> pid = </span> <span class="value">{{procExec.pid}}</span></li>			
@@ -49,18 +46,18 @@ function formatEsecuzione() {
 		</ul>
 	</div>
 	`;
-    let template = handlebars_1.default.compile(source);
-    return template({ procExec: procExec });
+let templateEsecuzione;
+function formatEsecuzione() {
+    if (isNaN(this.procExecId))
+        return `<div><h2>Esecuzione <span class="info title">empty</span></h2></div>`;
+    let processInExecution = this.procList.find(proc => proc.pid == this.procExecId);
+    if (!templateEsecuzione)
+        templateEsecuzione = handlebars_1.default.compile(sourceEsecuzione);
+    return templateEsecuzione({ procExec: processInExecution });
 }
-function formatCodaPronti() {
-    let pronti_count = this.codaPronti.length;
-    let pronti_list = this.codaPronti;
-    if (pronti_count === 0) {
-        return `<div><h2>Coda pronti <span class="info title">empty</span></h2></div>`;
-    }
-    let source = `
+const sourceCodaPronti = `
         <div>
-            <h2>Coda pronti <span class="info title">${pronti_count} process${pronti_count === 1 ? 'o' : 'i'}</span></h2>
+            <h2>Coda pronti <span class="info title">{{count}} process{{#unless count}}o{{else}}i{{/unless}}</span></h2>
             <div><p>
             {{#each pronti_list}}
                 <span class="info">{{this}}</span>
@@ -72,17 +69,22 @@ function formatCodaPronti() {
             </p></div>
         </div>
     `;
-    let template = handlebars_1.default.compile(source);
-    return template({ pronti_list: pronti_list });
+let templateCodaPronti;
+function formatCodaPronti() {
+    let pronti_list = this.codaPronti;
+    if (pronti_list.length === 0) {
+        return `<div><h2>Coda pronti <span class="info title">empty</span></h2></div>`;
+    }
+    if (!templateCodaPronti)
+        templateCodaPronti = handlebars_1.default.compile(sourceCodaPronti);
+    return templateCodaPronti({
+        pronti_list: pronti_list,
+        count: pronti_list.length - 1
+    });
 }
-function formatCodaSospesi() {
-    let sospesi_count = this.codaSospesi.length;
-    let sospesi_list = this.codaSospesi;
-    if (sospesi_count == 0)
-        return `<div><h2>Processi sospesi <span class="info title">empty</span></h2></div>`;
-    let source = `
+const sourceCodaSospesi = `
 	<div>
-		<h2>Processi sospesi <span class="info title">${sospesi_count} process${sospesi_count == 1 ? 'o' : 'i'}</span></h2>
+		<h2>Processi sospesi <span class="info title">{{count}} process{{#unless count}}o{{else}}i{{/unless}}</span></h2>
 		<div><ul>
 			{{#each sospesi_list}}
 			<li>
@@ -93,9 +95,106 @@ function formatCodaSospesi() {
 		</ul></div>
 	</div>
 	`;
-    let template = handlebars_1.default.compile(source);
-    return template({ sospesi_list: sospesi_list });
+let templateCodaSospesi;
+function formatCodaSospesi() {
+    let sospesi_list = this.codaSospesi;
+    if (sospesi_list.length == 0)
+        return `<div><h2>Processi sospesi <span class="info title">empty</span></h2></div>`;
+    if (!templateCodaSospesi)
+        templateCodaSospesi = handlebars_1.default.compile(sourceCodaSospesi);
+    return templateCodaSospesi({
+        sospesi_list: sospesi_list,
+        count: sospesi_list.length
+    });
 }
+const sourceSemaphoreList = `
+	<div>
+		<h2>Semafori</h2>
+
+		{{#if activeSem}}
+		<div>
+			<h3>
+				<span>Semafori occupati </span>
+				<span class="info">{{sem_act_utn_list.length}}</span> | 
+				<span class="info">{{sem_act_sys_list.length}}</span>
+			</h3>
+			{{#if sem_act_utn_list}}
+				<h4>
+					<span>Utente </span>
+					<span class="info">{{sem_act_utn_list.length}}</span>
+				</h4>
+				{{#each sem_act_utn_list}}
+					<div>
+						<p>
+							Sem [{{index}}]:
+							coda: {
+							{{#each sem_info.process_list}}
+								<span class="info">{{this}}</span>
+								{{#unless this}}[DUMMY]{{/unless}}
+								{{#unless @last}}, {{/unless}}
+							{{/each}}
+							}; counter = {{sem_info.counter}}
+						</p>
+					</div>
+				{{/each}}
+			{{/if}}
+			{{#if sem_act_sys_list}}
+				<h4>
+					<span>Sistema </span>
+					<span class="info">{{sem_act_sys_list.length}}</span>
+				</h4>
+				{{#each sem_act_sys_list}}
+					<div>
+						<p>
+							Sem [{{index}}]:
+							coda: {
+							{{#each sem_info.process_list}}
+								<span class="info">{{this}}</span>
+								{{#unless this}}[DUMMY]{{/unless}}
+								{{#unless @last}}, {{/unless}}
+							{{/each}}
+							}; counter = {{sem_info.counter}}
+						</p>
+					</div>
+				{{/each}}
+			{{/if}}
+		</div>
+		<br>
+		{{/if}}
+
+		{{#if inactiveSem}}
+		<div>
+			<h3>
+				<span>Semafori liberi </span>
+				<span class="info">{{sem_inact_utn_list.length}}</span> | 
+				<span class="info">{{sem_inact_sys_list.length}}</span>
+			</h3>
+
+			{{#if sem_inact_utn_list}}
+				<h4>
+					<span>Utente </span>
+					<span class="info">{{sem_inact_utn_list.length}}</span>
+				</h4>
+				{{#each sem_inact_utn_list}}
+					<p>Sem [{{index}}]: counter = {{sem_info.counter}}</p>
+				{{/each}}
+			{{/if}}
+
+			{{#if sem_inact_sys_list}}
+				<h4>
+					<span>Sistema </span>
+					<span class="info">{{sem_inact_sys_list.length}}</span>
+				</h4>
+				{{#each sem_inact_sys_list}}
+					<p>Sem [{{index}}]: counter = {{sem_info.counter}}</p>
+				{{/each}}
+			{{/if}}
+
+		</div>
+		{{/if}}
+	</div>
+	`;
+let templateSemaphoreList;
 function formatSemaphoreList() {
     let sem_act_utn_list = [];
     let sem_act_sys_list = [];
@@ -115,95 +214,12 @@ function formatSemaphoreList() {
     });
     let activeSem = sem_act_utn_list.length > 0 || sem_act_sys_list.length > 0;
     let inactiveSem = sem_inact_utn_list.length > 0 || sem_inact_sys_list.length > 0;
-    let source = `
-	<div>
-		<h2>Semafori</h2>
-
-		{{#if activeSem}}
-		<div>
-			<h3>
-				<span>Semafori occupati </span>
-				<span class="info">${sem_act_utn_list.length}</span> | 
-				<span class="info"> ${sem_act_sys_list.length}</span>
-			</h3>
-			{{#if sem_act_utn_list}}
-				<h4>
-					<span>Utente </span>
-					<span class="info">${sem_act_utn_list.length}</span>
-				</h4>
-				{{#each sem_act_utn_list}}
-					<div>
-						<p>
-							Sem [{{index}}]:
-							 coda: {
-							{{#each sem_info.process_list}}
-								<span class="info">{{this}}</span>
-								{{#unless this}}[DUMMY]{{/unless}}
-								{{#unless @last}}, {{/unless}}
-							{{/each}}
-							}; counter = {{sem_info.counter}}
-						</p>
-					</div>
-				{{/each}}
-			{{/if}}
-			{{#if sem_act_sys_list}}
-				<h4>
-					<span>Sistema </span>
-					<span class="info">${sem_act_sys_list.length}</span>
-				</h4>
-				{{#each sem_act_sys_list}}
-					<div>
-						<p>
-							Sem [{{index}}]:
-							 coda: {
-							{{#each sem_info.process_list}}
-								<span class="info">{{this}}</span>
-								{{#unless this}}[DUMMY]{{/unless}}
-								{{#unless @last}}, {{/unless}}
-							{{/each}}
-							}; counter = {{sem_info.counter}}
-						</p>
-					</div>
-				{{/each}}
-			{{/if}}
-		</div>
-		<br>
-		{{/if}}
-
-		{{#if inactiveSem}}
-		<div>
-			<h3>
-				<span>Semafori liberi </span>
-				<span class="info">${sem_inact_utn_list.length}</span> | 
-				<span class="info">${sem_inact_sys_list.length}</span>
-			</h3>
-
-			{{#if sem_inact_utn_list}}
-				<h4>
-					<span>Utente </span>
-					<span class="info">${sem_inact_utn_list.length}</span>
-				</h4>
-				{{#each sem_inact_utn_list}}
-					<p>Sem [{{index}}]: counter = {{sem_info.counter}}</p>
-				{{/each}}
-			{{/if}}
-
-			{{#if sem_inact_sys_list}}
-				<h4>
-					<span>Sistema </span>
-					<span class="info">${sem_inact_sys_list.length}</span>
-				</h4>
-				{{#each sem_inact_sys_list}}
-					<p>Sem [{{index}}]: counter = {{sem_info.counter}}</p>
-				{{/each}}
-			{{/if}}
-
-		</div>
-		{{/if}}
-	</div>
-	`;
-    let template = handlebars_1.default.compile(source);
-    return template({
+    if (!activeSem && !inactiveSem) {
+        return `<div><h2>Semafori <span class="info title">empty</span></h2></div>`;
+    }
+    if (!templateSemaphoreList)
+        templateSemaphoreList = handlebars_1.default.compile(sourceSemaphoreList);
+    return templateSemaphoreList({
         sem_act_sys_list: sem_act_sys_list,
         sem_act_utn_list: sem_act_utn_list,
         sem_inact_sys_list: sem_inact_sys_list,
@@ -212,21 +228,11 @@ function formatSemaphoreList() {
         inactiveSem: inactiveSem
     });
 }
-function formatProcesses() {
-    let proc_count = this.procList.length;
-    let proc_sys = [];
-    let proc_utn = [];
-    this.procList.forEach(element => {
-        if (element.livello == "sistema")
-            proc_sys.push(element);
-        else
-            proc_utn.push(element);
-    });
-    let source = `
+const sourceProcesses = `
 	<div>
-		<h2>Processi creati <span class="info">${proc_count}</span></h2>
+		<h2>Processi creati <span class="info">{{proc_count}}</span></h2>
 		<div>
-			<h3 class="p-title toggle"><span>Sistema </span><span class="info">${proc_sys.length}</span></h3>
+			<h3 class="p-title toggle"><span>Sistema </span><span class="info">{{proc_sys.length}}</span></h3>
 			<div class="toggable">
 				{{#each proc_sys}}
 					<div>
@@ -266,7 +272,7 @@ function formatProcesses() {
 			</div>
 		</div>
 		<div>
-			<h3 class="p-title toggle"><span>Utente </span><span class="info">${proc_utn.length}</span></h3>
+			<h3 class="p-title toggle"><span>Utente </span><span class="info">{{proc_utn.length}}</span></h3>
 			<div class="toggable">
 				{{#each proc_utn}}
 					<div>
@@ -307,7 +313,23 @@ function formatProcesses() {
 		</div>
 	</div>
 	`;
-    let template = handlebars_1.default.compile(source);
-    return template({ proc_sys: proc_sys, proc_utn: proc_utn, });
+let templateProcesses;
+function formatProcesses() {
+    let proc_count = this.procList.length;
+    let proc_sys = [];
+    let proc_utn = [];
+    this.procList.forEach(element => {
+        if (element.livello == "sistema")
+            proc_sys.push(element);
+        else
+            proc_utn.push(element);
+    });
+    if (!templateProcesses)
+        templateProcesses = handlebars_1.default.compile(sourceProcesses);
+    return templateProcesses({
+        proc_sys: proc_sys,
+        proc_utn: proc_utn,
+        proc_count: proc_count
+    });
 }
 //# sourceMappingURL=nucleoinfo_proc.js.map
