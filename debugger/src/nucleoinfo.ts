@@ -27,6 +27,9 @@ export class NucleoInfo {
 	private readonly _panelType: PanelType;
 	private readonly _extensionUri: vscode.Uri;
 
+	private readonly templateProcess: any | undefined;
+	private readonly templateVm: any | undefined;
+
 	private _disposables: vscode.Disposable[] = [];
 
     private constructor(panel: vscode.WebviewPanel, panelType: PanelType, extensionUri: vscode.Uri) {
@@ -41,7 +44,9 @@ export class NucleoInfo {
 			this.formatCodaSospesi = ProcessInfoMethods.formatCodaSospesi.bind(this);
 			this.formatSemaphoreList = ProcessInfoMethods.formatSemaphoreList.bind(this);
 			this.formatProcesses = ProcessInfoMethods.formatProcesses.bind(this);
+
 			// Compiles the Handlebars templates once, at the start of the extension
+			this.templateProcess = this.compileProcessPanelTemplate();
 			this.compileProcessTemplates();
 		}
 
@@ -49,8 +54,10 @@ export class NucleoInfo {
 			this.compileVmTemplates = VmInfoMethods.compileVmTemplates.bind(this);
 			this.formatVmMaps = VmInfoMethods.formatVmMaps.bind(this);
 			this.formatVmTree = VmInfoMethods.formatVmTree.bind(this);
-			this.vmPathAnalyzer = VmInfoMethods.vmPathAnalyzer.bind(this);
+			// this.vmPathAnalyzer = VmInfoMethods.vmPathAnalyzer.bind(this);
+
 			// Compiles the Handlebars templates once, at the start of the extension
+			this.templateVm = this.compileVmPanelTemplate();
 			this.compileVmTemplates();
 		}
 
@@ -80,8 +87,13 @@ export class NucleoInfo {
 				this.procExecId = processInfoJson.exec;
 
 				// Format all information into an HTML page
-				infoPanel.html = this.formatHTMLprocessInfo();
-
+				infoPanel.html = this.templateProcess({
+					executionProcess: this.formatEsecuzione(),
+					readyProcessList: this.formatCodaPronti(),
+					suspendedList: this.formatCodaSospesi(),
+					semaphoreList: this.formatSemaphoreList(),
+					processList: this.formatProcesses(),
+				});
 				break;
 
 			case PanelType.Memory:
@@ -93,8 +105,14 @@ export class NucleoInfo {
 				this.vmTree = memoryInfoJson.tree;
 		
 				// Format all information into an HTML page
-				infoPanel.html = this.formatHTMLMemoryInfo();
-				
+				infoPanel.html = this.templateVm({
+					//VMpath: this.vmPathAnalyzer(),
+					VMtree: this.formatVmTree(),
+					VMmaps: this.formatVmMaps(),
+					MaxLiv: JSON.stringify(this.getMaxLivJsonParsed()),
+					Trie: JSON.stringify(this.getVmTreeJsonParsed())
+				});
+
 				break;
 		}
 	};
@@ -188,7 +206,7 @@ export class NucleoInfo {
 		return template();
 	}
 
-    private formatHTMLprocessInfo() {
+	private compileProcessPanelTemplate() {
 		const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, '/media/webview', 'main.js');
 
 		// And the uri we use to load this script in the webview
@@ -225,18 +243,10 @@ export class NucleoInfo {
 			</html>
 		`;
 
-		let template = Handlebars.compile(sourceDocument);
-		
-		return template({
-			executionProcess: this.formatEsecuzione(),
-			readyProcessList: this.formatCodaPronti(),
-			suspendedList: this.formatCodaSospesi(),
-			semaphoreList: this.formatSemaphoreList(),
-			processList: this.formatProcesses(),
-		});
+		return Handlebars.compile(sourceDocument);
 	}
 
-    private formatHTMLMemoryInfo() {
+	private compileVmPanelTemplate() {
 		const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, '/media/webview', 'main.js');
 		const scriptPathOnDisk2 = vscode.Uri.joinPath(this._extensionUri, '/media/webview', 'vmTree.js');
 
@@ -266,12 +276,27 @@ export class NucleoInfo {
 					<title>-</title>
 				</head>
 				<body>
-					{{{VMpath}}}
+					<div>
+						<h2>Traduzione di un indirizzo virtuale</h2>
+						<div style="font-size:x-small; font-style:italic;">
+							<p>Note:</p>
+							<ul>
+								<li>Utilizza l'albero di traduzione del processo in esecuzione</li>
+								<li>Richiede un indirizzo espresso in cifre esadecimali</li>
+							</ul>
+						</div>
+						<div style="display: inline-flex; width: 100%;">
+							<input type="text" style="display:inline-block; width:50%;" id="vmadd" onkeydown="if(event.key === 'Enter') showTranslationPath();">
+							<button onclick="showTranslationPath()" style="display:inline-block; width:auto; padding: 0 20px;">Traduci</button>
+						</div>
+						<div id="vmPath"></div>
+						<div id="vmPathResult"></div>
+					</div>
 					{{{VMtree}}}
 					{{{VMmaps}}}
 					<script>
-						const MAX_LIV = ${JSON.stringify(this.getMaxLivJsonParsed())};
-						var vmTreeStringified = ${JSON.stringify(this.getVmTreeJsonParsed())};
+						const MAX_LIV = {{{MaxLiv}}};
+						var vmTreeStringified = {{{Trie}}};
 					</script>
 					<script src="${scriptUri}"></script>
 					<script src="${scriptUri2}"></script>
@@ -279,13 +304,7 @@ export class NucleoInfo {
 			</html>
 		`;
 
-		let template = Handlebars.compile(sourceDocument);
-		
-		return template({
-			VMpath: this.vmPathAnalyzer(),
-			VMtree: this.formatVmTree(),
-			VMmaps: this.formatVmMaps()
-		});
+		return Handlebars.compile(sourceDocument);
 	}
 
 	private compileProcessTemplates() : void;
